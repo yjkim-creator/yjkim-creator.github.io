@@ -1,0 +1,207 @@
+/* 등불 골목: 남색 밤하늘, 돌바닥 칸, 구리 전선, 켜지면 호박색 불빛 */
+:root {
+  --night: #11143a;
+  --night-2: #1b2048;
+  --stone: #262b5a;
+  --stone-2: #2d336a;
+  --seam: #0c0f2c;
+  --copper: #7a5340;
+  --copper-dark: #3b2a2a;
+  --glow: #ffc96b;
+  --glow-hot: #fff1c4;
+  --paper: #e9d9b4;
+  --ink: #f4ecda;
+  --muted: #9fa3cf;
+  --red: #ff6a4a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; min-height: 100%; background: var(--night); }
+body {
+  color: var(--ink);
+  font: 15px/1.45 "Pretendard", "Noto Sans KR", "Apple SD Gothic Neo", system-ui, sans-serif;
+  background:
+    radial-gradient(120% 60% at 50% -10%, #343a86 0%, rgba(52, 58, 134, 0) 60%),
+    radial-gradient(2px 2px at 12% 8%, #fff8 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 78% 5%, #fff9 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 44% 12%, #fff6 50%, transparent 51%),
+    radial-gradient(2px 2px at 92% 15%, #fff7 50%, transparent 51%),
+    linear-gradient(#11143a, #0b0d26 70%);
+  background-attachment: fixed;
+  user-select: none;
+  -webkit-user-select: none;
+  overflow-x: hidden;
+}
+html.shot body { width: 412px; min-height: 732px; }
+button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; padding: 0; }
+button:disabled { opacity: 0.38; cursor: default; }
+#app { max-width: 480px; margin: 0 auto; }
+.shell { min-height: 100vh; display: flex; flex-direction: column; padding: 0 16px; }
+html.shot .shell { min-height: 732px; }
+
+/* 머리: 지붕선과 줄 전구 */
+.top { position: relative; height: 92px; display: flex; align-items: flex-end; justify-content: space-between; padding-bottom: 8px; }
+.skyline { position: absolute; left: -16px; right: -16px; top: 0; width: calc(100% + 32px); height: 92px; }
+.skyline .roof { fill: #090b22; }
+.skyline .string { fill: none; stroke: #4a3d4a; stroke-width: 1.4; }
+.skyline .bulb { fill: var(--glow); filter: drop-shadow(0 0 4px #ffb84d); }
+.skyline .b1 { fill: #ff8a5c; }
+.skyline .b2 { fill: #ffe39a; }
+.skyline .window { fill: #ffcf73; opacity: 0.75; }
+.top h1 {
+  position: relative; margin: 0; font-size: 22px; letter-spacing: 0.06em; font-weight: 800;
+  color: var(--glow-hot); text-shadow: 0 0 14px rgba(255, 190, 90, 0.55), 0 2px 0 #0008;
+}
+.round {
+  position: relative; width: 44px; height: 44px; border-radius: 50%;
+  display: grid; place-items: center; background: #ffffff10; border: 1px solid #ffffff22;
+  transition: transform 0.12s;
+}
+.round:active { transform: scale(0.9); }
+.round .ic { width: 24px; height: 24px; }
+.ic { fill: none; stroke: currentColor; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; }
+.sound .ic path:first-child { fill: currentColor; stroke-width: 4; }
+.sound.muted .waves { opacity: 0.15; }
+.sound.muted { color: var(--muted); }
+
+.view { flex: 1; padding-top: 6px; }
+.sub { display: flex; align-items: baseline; gap: 10px; margin: 4px 2px 10px; color: var(--muted); font-size: 13px; letter-spacing: 0.04em; }
+.sub .date { font-size: 18px; font-weight: 700; color: var(--ink); letter-spacing: 0; }
+
+/* 골목 고르기: 표 딱지 모양 */
+.chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.chip {
+  position: relative; min-height: 58px; padding: 7px 10px 6px; text-align: left; border-radius: 6px 14px 6px 14px;
+  background: linear-gradient(160deg, #2a2f66, #20244f); border: 1px solid #3a4086;
+  display: flex; flex-direction: column; gap: 1px; transition: transform 0.12s, border-color 0.2s;
+}
+.chip:active { transform: translateY(2px); }
+.chip.sel { border-color: var(--glow); box-shadow: 0 0 0 1px #ffc96b55, 0 6px 18px -8px #ffb84d; }
+.chip-n { font-weight: 700; font-size: 14px; }
+.chip-s { font-size: 11px; color: var(--muted); }
+.chip.done { background: linear-gradient(160deg, #4a3a3a, #2c2547); }
+.stars { font-style: normal; letter-spacing: 1px; font-size: 13px; color: #ffffff30; }
+.stars i { font-style: normal; }
+.stars i.got { color: var(--glow); text-shadow: 0 0 8px #ffb84d; }
+.stars.dim { color: #ffffff40; }
+
+/* 판 */
+.stage { position: relative; display: flex; justify-content: center; }
+.board {
+  display: grid; grid-template-columns: repeat(var(--cols), var(--tile));
+  padding: 6px; border-radius: 14px; background: var(--seam);
+  box-shadow: inset 0 0 0 1px #ffffff12, 0 18px 40px -18px #000;
+}
+.tile {
+  position: relative; width: var(--tile); height: var(--tile); overflow: visible;
+  background: var(--stone); box-shadow: inset 0 0 0 1.5px var(--seam), inset 0 3px 0 #ffffff0d;
+  border-radius: 7px;
+}
+.tile.s1 { background: var(--stone-2); }
+.tile.s2 { background: #282d5f; border-radius: 9px 5px 8px 6px; }
+.tile.s3 { background: #242956; border-radius: 5px 9px 6px 8px; }
+.tile .spin { position: absolute; inset: 0; transition: transform 0.16s cubic-bezier(0.3, 1.4, 0.5, 1); }
+.wire { width: 100%; height: 100%; display: block; overflow: visible; }
+.w-shadow line { stroke: #0a0c22; stroke-width: 15; stroke-linecap: round; }
+.w-core line { stroke: var(--copper); stroke-width: 8; stroke-linecap: round; transition: stroke 0.25s; }
+.w-hub { fill: var(--copper); transition: fill 0.25s; }
+.tile.on .w-core line { stroke: var(--glow); }
+.tile.on .w-hub { fill: var(--glow-hot); }
+.tile.on .spin { filter: drop-shadow(0 0 5px rgba(255, 186, 80, 0.75)); }
+.tile.tap { animation: nudge 0.18s; }
+@keyframes nudge { 50% { transform: scale(0.92); } }
+
+.lamp, .gen { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.l-cord, .l-tassel { stroke: #5a4a4a; stroke-width: 3; }
+.l-cap { fill: #3d3036; }
+.l-body { fill: #4d3a46; stroke: #6a5160; stroke-width: 2; transition: fill 0.3s; }
+.l-rib { fill: none; stroke: #00000030; stroke-width: 2; }
+.tile.on .l-body { fill: hsl(var(--hue), 92%, 62%); stroke: hsl(var(--hue), 100%, 78%); }
+.tile.on .l-tassel { stroke: hsl(var(--hue), 80%, 55%); }
+.tile.on .lamp { filter: drop-shadow(0 0 9px hsla(var(--hue), 100%, 62%, 0.9)); }
+.g-ring { fill: #2a2140; stroke: #b88b4a; stroke-width: 4; }
+.g-core { fill: #ffd97f; filter: drop-shadow(0 0 7px #ffbf55); }
+.g-bolt { fill: #6a3a1a; }
+
+.board.won .tile.on { animation: wave 0.9s ease-out var(--d, 0ms) both; }
+@keyframes wave { 0% { filter: brightness(1); } 35% { filter: brightness(1.7); } 100% { filter: brightness(1.12); } }
+.board.won { box-shadow: inset 0 0 0 1px #ffc96b44, 0 0 46px -6px #ffaa4488; }
+
+/* 완성 카드: 판 아래쪽에 겹쳐 등불이 보이게 한다 */
+.card {
+  position: absolute; left: 50%; bottom: -14px; transform: translateX(-50%);
+  width: min(100%, 330px); padding: 14px 16px 14px; border-radius: 16px;
+  background: linear-gradient(170deg, #f6e8c6, #e7d0a0); color: #2a1c18;
+  box-shadow: 0 16px 36px -10px #000c, 0 0 0 3px #00000022; text-align: left;
+  animation: rise 0.35s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+}
+html.shot .card { animation: none; }
+@keyframes rise { from { transform: translate(-50%, 20px); opacity: 0; } }
+.card h3 { margin: 0 0 2px; font-size: 18px; }
+.card p { margin: 4px 0 10px; font-size: 13px; color: #5a4535; }
+.card .stars { font-size: 18px; color: #2a1c1830; }
+.card .stars i.got { color: #e07a1a; text-shadow: none; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+.lit-btn {
+  min-height: 44px; padding: 0 18px; border-radius: 22px; font-weight: 700;
+  background: #2a1c18; color: var(--glow-hot); box-shadow: 0 3px 0 #000a;
+  transition: transform 0.1s;
+}
+.lit-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #000a; }
+.card .ghost { color: #2a1c18; border-color: #2a1c1855; }
+
+/* 계기판 */
+.meter { display: flex; align-items: center; gap: 10px; margin: 26px 2px 6px; }
+.gauge { display: flex; align-items: baseline; gap: 3px; flex-wrap: wrap; min-width: 0; }
+.gauge b { font: 700 24px/1 Georgia, "Times New Roman", serif; color: var(--glow-hot); }
+.gauge small { color: var(--muted); font-size: 13px; }
+.gauge span { flex-basis: 100%; font-size: 11px; color: var(--muted); letter-spacing: 0.05em; }
+.gauge + .gauge { padding-left: 12px; border-left: 1px solid #ffffff1c; }
+.ghost {
+  margin-left: auto; min-height: 44px; padding: 0 14px; border-radius: 22px;
+  border: 1px solid #ffffff2e; font-size: 13px; white-space: nowrap;
+}
+.note { margin: 6px 2px 0; font-size: 13px; color: var(--muted); }
+.note.warn { color: #ffb08a; }
+
+/* 등불 줄 */
+.month { display: flex; align-items: center; justify-content: space-between; margin: 2px 0 6px; }
+.month h3 { margin: 0; font-size: 17px; }
+.weekhead { display: grid; grid-template-columns: repeat(7, 1fr); font-size: 11px; color: var(--muted); text-align: center; padding: 0 2%; }
+.garland { width: 100%; height: auto; display: block; }
+.cord { fill: none; stroke: #4a3d4a; stroke-width: 1.6; }
+.hang line { stroke: #4a3d4a; stroke-width: 1.4; }
+.hang rect { fill: #3d3036; }
+.hang ellipse { fill: #1d2148; stroke: #3c4380; stroke-width: 1.5; stroke-dasharray: 3 3; }
+.hang text { fill: var(--muted); font-size: 11px; text-anchor: middle; }
+.hang.l1 ellipse { fill: #b8573a; stroke: #e07a50; stroke-dasharray: none; }
+.hang.l2 ellipse { fill: #f08a3c; stroke: #ffb46a; stroke-dasharray: none; filter: drop-shadow(0 0 5px #ff9a4a); }
+.hang.l3 ellipse { fill: #ffc65a; stroke: #fff0b8; stroke-dasharray: none; filter: drop-shadow(0 0 8px #ffbf55); }
+.hang.l1 text, .hang.l2 text, .hang.l3 text { fill: var(--ink); }
+.hang.is-today text { fill: var(--glow); font-weight: 700; }
+.hang.is-today ellipse { stroke: var(--glow); stroke-width: 2.5; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 0 0 10px; }
+.stats div { background: #ffffff0b; border-radius: 10px; padding: 8px 6px; text-align: center; }
+.stats b { display: block; font: 700 22px/1.1 Georgia, serif; color: var(--glow-hot); }
+.stats span { font-size: 10.5px; color: var(--muted); line-height: 1.2; display: block; }
+
+/* 아래 탭 */
+.tabs {
+  position: sticky; bottom: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+  margin: 12px -16px 0; padding: 6px 12px 10px; background: linear-gradient(#0b0d2600, #0b0d26 30%);
+}
+.tab {
+  min-height: 52px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; font-size: 12px; color: var(--muted); transition: color 0.2s, background 0.2s;
+}
+.tab .ic { width: 24px; height: 24px; }
+.tab.sel { color: var(--glow-hot); background: #ffffff0d; }
+.tab:active { transform: scale(0.96); }
+
+@media (max-width: 350px) {
+  .chip { padding: 6px 7px; }
+  .chip-n { font-size: 13px; }
+  .gauge b { font-size: 20px; }
+  .ghost { padding: 0 10px; font-size: 12px; }
+  .stats b { font-size: 18px; }
+}
