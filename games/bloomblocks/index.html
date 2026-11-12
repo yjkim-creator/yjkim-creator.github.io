@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#14122b">
+  <title>Bloom Blocks</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="https://h5sdk.onestore.net/lib/v1.1.0/onestore-h5-sdk.min.js"></script>
+  <script type="module">
+// 원스토어 앱 안에서 실행될 때 SDK와 연결합니다. 일반 브라우저에서는 아무 일도 하지 않습니다.
+import { createSDK } from "https://h5sdk.onestore.net/lib/v1.1.0/onestore-h5-sdk.min.js";
+
+// 검사 화면이 듣기 시작한 뒤에 인사(hello)를 보내도록 페이지 로드 후 잠깐 기다립니다.
+function startOnestore() {
+  const sdk = createSDK();
+  sdk.on("pause", () => {});
+  sdk.on("resume", () => {});
+  sdk.initializeAsync()
+    .then((info) => {
+      if (info && info.err) return; // 원스토어 앱 밖(일반 브라우저)
+      sdk.setLoadingProgress(100);
+      return sdk.startGameAsync();
+    })
+    .catch((e) => console.warn("onestore sdk", e && (e.reason || e.message)));
+}
+if (document.readyState === "complete") setTimeout(startOnestore, 800);
+else window.addEventListener("load", () => setTimeout(startOnestore, 800));
+  </script>
+</head>
+<body>
+  <header id="hud">
+    <button id="restart" class="icon" type="button" aria-label="New game">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5a7 7 0 1 1-6.3 4M12 5 8.5 2M12 5 8.5 8"/></svg>
+    </button>
+    <div class="scores">
+      <div id="score" aria-live="polite">0</div>
+      <div class="best"><span id="best-label"></span> <span id="best">0</span></div>
+    </div>
+    <button id="sound" class="icon" type="button" aria-label="Sound" aria-pressed="true">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 9.5v5h3.5L12 18.5v-13L7.500 9.500z"/>
+        <path id="sound-on" d="M15.500 9a4 4 0 0 1 0 6M18 6.500a8 8 0 0 1 0 11"/>
+        <path id="sound-off" d="m16 9.500 5 5m0-5-5 5"/>
+      </svg>
+    </button>
+  </header>
+
+  <canvas id="stage"></canvas>
+
+  <section id="overlay" hidden>
+    <div class="panel">
+      <h1 id="overlay-title"></h1>
+      <p id="overlay-score"></p>
+      <p id="overlay-detail"></p>
+      <button id="overlay-primary" type="button"></button>
+      <button id="overlay-secondary" class="ghost" type="button"></button>
+    </div>
+  </section>
+
+  <script src="game.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

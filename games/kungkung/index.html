@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>쿵쿵 공룡섬</title>
+<meta name="description" content="공룡을 키워 섬을 모험하고 대결하는 어린이 게임">
+<meta name="theme-color" content="#0E2A3B">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap">
+<link rel="stylesheet" href="src/style.css">
+  <script type="module" src="https://h5sdk.onestore.net/lib/v1.1.0/onestore-h5-sdk.min.js"></script>
+  <script type="module">
+// 원스토어 앱 안에서 실행될 때 SDK와 연결합니다. 일반 브라우저에서는 아무 일도 하지 않습니다.
+import { createSDK } from "https://h5sdk.onestore.net/lib/v1.1.0/onestore-h5-sdk.min.js";
+
+// 검사 화면이 듣기 시작한 뒤에 인사(hello)를 보내도록 페이지 로드 후 잠깐 기다립니다.
+function startOnestore() {
+  const sdk = createSDK();
+  sdk.on("pause", () => {});
+  sdk.on("resume", () => {});
+  sdk.initializeAsync()
+    .then((info) => {
+      if (info && info.err) return; // 원스토어 앱 밖(일반 브라우저)
+      sdk.setLoadingProgress(100);
+      return sdk.startGameAsync();
+    })
+    .catch((e) => console.warn("onestore sdk", e && (e.reason || e.message)));
+}
+if (document.readyState === "complete") setTimeout(startOnestore, 800);
+else window.addEventListener("load", () => setTimeout(startOnestore, 800));
+  </script>
+</head>
+<body>
+<svg id="defs" width="0" height="0" aria-hidden="true">
+  <defs>
+    <radialGradient id="glow"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".35" stop-color="#fff" stop-opacity=".35"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    <linearGradient id="shade-down" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".34"/></linearGradient>
+    <linearGradient id="lit-left" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".2"/><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".32"/></linearGradient>
+    <linearGradient id="sea-light" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".42"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <linearGradient id="haze" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFF4D6" stop-opacity="0"/><stop offset="1" stop-color="#FFF4D6" stop-opacity=".42"/></linearGradient>
+    <pattern id="grit" width="90" height="60" patternUnits="userSpaceOnUse">
+      <circle cx="12" cy="14" r="2.4" fill="#000" opacity=".1"/><circle cx="52" cy="8" r="1.6" fill="#fff" opacity=".25"/>
+      <circle cx="72" cy="38" r="2.8" fill="#000" opacity=".08"/><circle cx="30" cy="46" r="1.8" fill="#fff" opacity=".2"/>
+    </pattern>
+  </defs>
+</svg>
+
+<template id="backdrop-tpl">
+  <svg class="backdrop" viewBox="0 0 1000 800" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+    <g class="night-stars">
+      <circle cx="240" cy="80" r="3"/><circle cx="420" cy="50" r="2.2"/><circle cx="560" cy="120" r="3"/><circle cx="720" cy="60" r="2.2"/>
+      <circle cx="330" cy="170" r="2.2"/><circle cx="640" cy="200" r="2.2"/><circle cx="470" cy="210" r="3"/><circle cx="780" cy="160" r="2.2"/><circle cx="150" cy="140" r="2.4"/><circle cx="880" cy="90" r="2.6"/>
+    </g>
+    <circle cx="395" cy="185" r="190" fill="url(#glow)" class="sun-glow"/>
+    <circle class="sun halo" cx="395" cy="185" r="62"/><circle class="sun halo" cx="395" cy="185" r="50"/>
+    <circle class="sun" cx="395" cy="185" r="40"/><circle cx="395" cy="185" r="40" fill="url(#glow)"/>
+    <g class="cloud far"><ellipse cx="170" cy="250" rx="130" ry="20"/><ellipse cx="210" cy="236" rx="80" ry="20"/></g>
+    <g class="cloud"><ellipse cx="540" cy="110" rx="110" ry="26"/><ellipse cx="590" cy="88" rx="66" ry="30"/><ellipse cx="490" cy="92" rx="50" ry="24"/></g>
+    <path class="far-range" d="M-20 560L120 410L210 470L320 380L430 480L560 420L720 470L860 390L1020 500V640H-20Z"/>
+    <g class="smoke"><circle cx="668" cy="214" r="24"/><circle cx="704" cy="166" r="36"/><circle cx="752" cy="104" r="48"/><circle cx="818" cy="44" r="62"/></g>
+    <circle cx="660" cy="262" r="120" fill="url(#glow)" class="lava-glow"/>
+    <path class="volcano" d="M372 640L590 276Q606 256 622 268Q660 244 700 268Q716 256 730 276L968 640Z"/>
+    <path d="M372 640L590 276Q606 256 622 268Q660 244 700 268Q716 256 730 276L968 640Z" fill="url(#lit-left)"/>
+    <path class="rock-face" d="M640 330L600 470L640 640H560L590 470ZM760 420L800 540L780 640H860L830 540Z"/>
+    <path class="lava" d="M622 268Q660 246 700 268L694 300L678 284L664 372L652 300L640 330L632 290Z"/>
+    <rect class="haze" y="330" width="1000" height="200"/>
+    <rect class="sea" y="528" width="1000" height="130"/>
+    <rect y="528" width="1000" height="130" fill="url(#sea-light)"/>
+    <g class="shimmer">
+      <path d="M90 556H220M380 548H480M640 562H790M860 546H950M160 590H310M520 596H690"/>
+    </g>
+    <path class="hill-far" d="M-20 650Q130 500 300 570Q420 620 520 650Z"/>
+    <path class="hill-near" d="M500 660Q690 530 1020 590V690H500Z"/>
+    <g class="trees">
+      <ellipse cx="60" cy="560" rx="60" ry="46"/><ellipse cx="130" cy="580" rx="50" ry="38"/><ellipse cx="900" cy="560" rx="66" ry="50"/><ellipse cx="970" cy="548" rx="50" ry="44"/><ellipse cx="820" cy="590" rx="46" ry="34"/>
+    </g>
+    <g class="palm" transform="translate(95 0)">
+      <path class="trunk" d="M240 650Q222 540 262 450"/>
+      <g class="fronds">
+        <path d="M262 450Q190 386 104 446Q190 416 262 450Z"/><path d="M262 450Q330 380 414 438Q330 412 262 450Z"/>
+        <path d="M262 450Q230 356 150 352Q222 388 262 450Z"/><path d="M262 450Q300 350 378 356Q306 390 262 450Z"/>
+        <path d="M262 450Q214 450 150 524Q226 480 262 450Z"/><path d="M262 450Q316 450 372 520Q296 482 262 450Z"/>
+      </g>
+      <circle class="coco" cx="252" cy="462" r="11"/><circle class="coco" cx="274" cy="464" r="11"/>
+    </g>
+    <path class="ground" d="M-20 636Q240 596 500 626Q760 656 1020 616V820H-20Z"/>
+    <path d="M-20 636Q240 596 500 626Q760 656 1020 616V820H-20Z" fill="url(#shade-down)"/>
+    <path d="M-20 636Q240 596 500 626Q760 656 1020 616V820H-20Z" fill="url(#grit)"/>
+    <g class="print"><ellipse cx="300" cy="704" rx="19" ry="8"/><ellipse cx="350" cy="730" rx="19" ry="8"/><ellipse cx="620" cy="722" rx="19" ry="8"/><ellipse cx="672" cy="700" rx="19" ry="8"/></g>
+    <g class="fore">
+      <path d="M-30 820Q10 640 130 610Q90 700 110 820ZM40 830Q110 690 250 700Q150 740 170 830Z"/>
+      <path d="M1030 810Q990 640 870 604Q910 700 890 810ZM960 830Q890 690 750 700Q850 740 830 830Z"/>
+    </g>
+  </svg>
+</template>
+
+<main id="world">
+  <header id="hud">
+    <div id="nameplate">
+      <div id="dino-name"></div>
+      <div id="growth" role="progressbar" aria-label="경험치"><span id="growth-fill"></span></div>
+    </div>
+    <button id="btn-stars" class="chip" aria-label="꾸미기 가게"><span id="star-icon"></span><b id="star-count">0</b></button>
+    <button id="btn-book" class="icon-btn" aria-label="공룡 도감">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path fill="currentColor" d="M4 7Q10 3.5 15 7.5V27Q10 23.5 4 26ZM17 7.5Q22 3.5 28 7V26Q22 23.5 17 27Z"/></svg>
+    </button>
+    <button id="btn-settings" class="icon-btn" aria-label="어른용 설정">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path class="line thin" d="M4 10H28M4 22H28"/><circle fill="currentColor" cx="20" cy="10" r="4.5"/><circle fill="currentColor" cx="12" cy="22" r="4.5"/></svg>
+    </button>
+  </header>
+
+  <section id="scene" aria-label="공룡섬">
+    <div id="scene-art"></div>
+    <div id="motes" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <button id="btn-mission" class="chip" aria-label="오늘의 미션">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect fill="none" stroke="currentColor" stroke-width="2.6" x="4.5" y="4.5" width="23" height="23" rx="7"/><path fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" d="M10 16.5L14.5 21L22.5 11.5"/></svg>
+      <b id="mission-count">0/3</b>
+    </button>
+    <div id="coinbar" aria-live="off">
+      <span class="coin-icon" aria-hidden="true"></span>
+      <div><b id="coin-count">0</b><small id="coin-rate"></small></div>
+    </div>
+    <div id="idle-tools">
+      <button id="btn-rush" class="skill" aria-label="쿵쿵 연타"><svg viewBox="0 0 32 32" aria-hidden="true"><path fill="#FFB627" d="M18 3L7 18H14L12 29L25 13H17Z"/></svg><i></i></button>
+      <button id="btn-rain" class="skill" aria-label="코인 소나기"><svg viewBox="0 0 32 32" aria-hidden="true"><path fill="#BFE9F2" d="M9 17A6 6 0 0 1 9 6Q13 1 19 5A6 6 0 0 1 24 17Z"/><circle fill="#FFB627" cx="10" cy="23" r="3"/><circle fill="#FFB627" cx="17" cy="27" r="3"/><circle fill="#FFB627" cx="23" cy="22" r="3"/></svg><i></i></button>
+      <button id="btn-grow" class="grow-btn"><svg viewBox="0 0 32 32" aria-hidden="true"><path fill="#3A2200" d="M16 4L28 17H21V28H11V17H4Z"/></svg><b>키우기</b></button>
+    </div>
+    <div id="bubble" hidden></div>
+    <div id="friends"></div>
+    <div id="dino-wrap"><div id="dino-flip"><button id="dino" aria-label="공룡 쓰다듬기"></button></div></div>
+    <div id="zzz" hidden>Z<span>z</span><span>z</span></div>
+    <div id="sponge" hidden></div>
+    <div id="fx"></div>
+  </section>
+
+  <div id="bath-bar" hidden>
+    <p>공룡을 쓱쓱 문질러 주세요!</p>
+    <div class="meter"><span id="bath-fill"></span></div>
+    <button id="bath-close" class="icon-btn" aria-label="그만 씻기">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path class="line" d="M9 9L23 23M23 9L9 23"/></svg>
+    </button>
+  </div>
+
+  <div id="tray" hidden>
+    <div id="tray-foods"></div>
+    <button id="tray-close" class="icon-btn" aria-label="먹이 닫기">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path class="line" d="M9 9L23 23M23 9L9 23"/></svg>
+    </button>
+  </div>
+
+  <nav id="actions" aria-label="돌보기">
+    <button class="act" data-act="food"><span class="ring"><svg viewBox="0 0 40 40" aria-hidden="true"><path fill="currentColor" d="M3 20H37Q36 33 25 35H15Q4 33 3 20ZM9 17A11 10 0 0 1 31 17Z"/></svg></span><b>밥</b></button>
+    <button class="act" data-act="clean"><span class="ring"><svg viewBox="0 0 40 40" aria-hidden="true"><path fill="currentColor" d="M20 3Q35 20 33 26A13 13 0 0 1 7 26Q5 20 20 3Z"/></svg></span><b>씻기</b></button>
+    <button class="act act-main" data-act="adv"><span class="main-btn"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="20" fill="#3A2200" opacity=".14"/><circle cx="24" cy="24" r="20" fill="none" stroke="#3A2200" stroke-width="2.4"/><path fill="#3A2200" d="M33 15L27 27L15 33L21 21Z"/><circle cx="24" cy="24" r="2.8" fill="#FFD565"/></svg></span><b>모험</b></button>
+    <button class="act" data-act="fun"><span class="ring"><svg viewBox="0 0 40 40" aria-hidden="true"><circle fill="currentColor" cx="20" cy="20" r="16"/><path fill="none" stroke="#0F2233" stroke-width="2.6" d="M5 15Q20 26 35 15M9 31Q20 14 31 31"/></svg></span><b>놀기</b></button>
+    <button class="act" data-act="energy"><span class="ring"><svg viewBox="0 0 40 40" aria-hidden="true"><path fill="currentColor" d="M26 4A17 17 0 1 0 36 26A14 14 0 0 1 26 4Z"/></svg></span><b>잠</b></button>
+  </nav>
+</main>
+
+<div id="sheet" hidden></div>
+
+<script src="src/data.js"></script>
+<script src="src/state.js"></script>
+<script src="src/idle.js"></script>
+<script src="src/battle.js"></script>
+<script src="src/art.js"></script>
+<script src="src/voices/index.js"></script>
+<script src="src/sound.js"></script>
+<script src="src/adventure.js"></script>
+<script src="src/play.js"></script>
+<script src="src/game.js"></script>
+</body>
+</html>
