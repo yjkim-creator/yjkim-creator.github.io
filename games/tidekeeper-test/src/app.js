@@ -677,6 +677,7 @@
     overlay.innerHTML = '';
     renderSheet();
     renderTop();
+    if (window.onestoreAd) window.onestoreAd.atBreak();
   }
   overlay.addEventListener('click', (ev) => { if (ev.target === overlay) { closeOverlay(); sfx.soft(); } });
   document.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', () => {

@@ -578,6 +578,7 @@
     resetBall();
     layout();
     refresh();
+    if (window.onestoreAd) window.onestoreAd.atBreak();
   }
 
   function scorecard(date, scores) {
