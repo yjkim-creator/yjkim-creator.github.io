@@ -631,10 +631,12 @@
         meta.active = 'practice';
         startPractice(true);
         ui.overlay = null;
+        if (window.onestoreAd) window.onestoreAd.atBreak();
         break;
       case 'again':
         if (current().mode === 'daily') { meta.daily = null; startDaily(true); } else startPractice(true);
         ui.overlay = null;
+        if (window.onestoreAd) window.onestoreAd.atBreak();
         break;
       default: return;
     }

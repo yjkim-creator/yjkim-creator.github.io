@@ -337,8 +337,10 @@
     } else if (name === 'nextAlley') {
       const open = state.day.boards.findIndex((b) => !b.done);
       if (open >= 0) state.day = { ...state.day, at: open };
+      if (window.onestoreAd) window.onestoreAd.atBreak();
     } else if (name === 'nextLevel') {
       state = Logic.nextFree(state);
+      if (window.onestoreAd) window.onestoreAd.atBreak();
       save();
     } else if (name === 'string') view = 'string';
     else if (name === 'free') view = 'free';
