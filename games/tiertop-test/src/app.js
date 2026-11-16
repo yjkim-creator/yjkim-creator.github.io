@@ -286,6 +286,7 @@
 
   function showEnd() {
     const info = endInfo;
+    if (window.onestoreAd) window.onestoreAd.atBreak();
     const h = Logic.height(info.run);
     const st = Logic.stars(info.run);
     sheet.innerHTML = `

@@ -454,6 +454,7 @@
   function showGameOver() {
     const record = state.score > startBest && state.score > 0;
     soundOver();
+    if (window.onestoreAd) window.onestoreAd.atBreak();
     showOverlay({
       title: record ? TEXT.record : TEXT.over,
       score: String(state.score),

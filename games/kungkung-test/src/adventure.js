@@ -354,6 +354,7 @@ window.DinoAdventure = (() => {
     const { save, snd } = c;
     const region = REGIONS[regionIndex];
     c.ui.cleanup = null;
+    if (window.onestoreAd) window.onestoreAd.atBreak();
     if (battle.winner !== 0) {
       const foeType = B.current(battle, 1).type;
       const strong = Object.keys(STRONG).filter((t) => STRONG[t].includes(foeType)).map((t) => TYPES[t].name).join(', ');
