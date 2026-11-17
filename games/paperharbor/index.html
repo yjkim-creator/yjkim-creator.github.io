@@ -24,7 +24,7 @@ function startOnestore() {
     .catch((e) => console.warn("onestore sdk", e && (e.reason || e.message)));
 }
 // 모듈 스크립트는 문서 해석 뒤에 실행되므로 load 를 기다리지 않고 바로 연결합니다(검사 팝업에서 load 가 늦을 수 있음).
-setTimeout(startOnestore, 300);
+startOnestore();
   </script>
 </head>
 <body>
