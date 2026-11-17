@@ -573,9 +573,9 @@
     const now = performance.now();
     if (name === 'voyage') { Sfx.play('select'); openVoyage(); }
     else if (name === 'today') { Sfx.play('select'); openDaily(); }
-    else if (name === 'retry') { Sfx.play('back'); openRef(ref); }
-    else if (name === 'next') { Sfx.play('select'); openVoyage(); }
-    else if (name === 'nextdaily') { Sfx.play('select'); openDaily(); }
+    else if (name === 'retry') { if (window.onestoreAd) window.onestoreAd.atBreak(); Sfx.play('back'); openRef(ref); }
+    else if (name === 'next') { if (window.onestoreAd) window.onestoreAd.atBreak(); Sfx.play('select'); openVoyage(); }
+    else if (name === 'nextdaily') { if (window.onestoreAd) window.onestoreAd.atBreak(); Sfx.play('select'); openDaily(); }
     else if (name === 'book') { Sfx.play('select'); overlay = 'book'; renderOverlay(); }
     else if (name === 'close') { Sfx.play('back'); overlay = null; renderOverlay(); }
     else if (name === 'hint') {
