@@ -320,6 +320,7 @@
     if (name === 'close') closeSheet();
     else if (name === 'again') {
       closeSheet();
+      if (window.onestoreAd) window.onestoreAd.atBreak();
       if (mode === 'daily') save.daily = L.dailyRun(today);
       else save.free = L.newRun({ seed: (Date.now() ^ 0xf00d) >>> 0, mode: 'free' });
       run = runFor(mode);
