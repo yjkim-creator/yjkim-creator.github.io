@@ -459,6 +459,7 @@
     },
     result(run) {
       const won = run.phase === 'won';
+      if (window.Rank && !/shot=/.test(location.hash)) Rank.submit(run.score);
       const streak = L.streakDays(meta.days, today());
       const day = meta.days[today()];
       const foot = run.mode === 'daily'
@@ -472,7 +473,8 @@
         <div class="row">
           <button class="primary" data-act="again">${run.mode === 'daily' ? t.again : t.newPractice}</button>
           <button class="ghost" data-act="${run.mode === 'daily' ? 'practice' : 'daily'}">${run.mode === 'daily' ? t.toPractice : t.toDaily}</button>
-        </div>`;
+        </div>
+        <button class="ghost" data-rank-open>${/^en/i.test(navigator.language || '') ? '🏆 Leaderboard' : '🏆 전국 랭킹'}</button>`;
     },
     menu(run) {
       const d = meta.daily && meta.daily.date === today() && meta.daily.phase !== 'won' && meta.daily.phase !== 'lost';
@@ -484,6 +486,7 @@
           ${p ? `<button data-act="newpractice"><b>${t.newPractice}</b><small>${t.bestPractice(meta.best)}</small></button>` : ''}
           <button data-act="codex"><b>${t.codex}</b><small>${t.enemies} ${meta.seen.length}/${L.ENEMY_IDS.length} · ${t.cards} ${meta.cards.length}/${L.CARD_IDS.length}</small></button>
           <button data-act="records"><b>${t.records}</b><small>${t.streak(L.streakDays(meta.days, today()))}</small></button>
+          <button data-rank-open><b>${/^en/i.test(navigator.language || '') ? '🏆 Leaderboard' : '🏆 전국 랭킹'}</b><small>&nbsp;</small></button>
           <button data-act="how"><b>${t.how}</b><small>&nbsp;</small></button>
           <button data-act="sound"><b>${meta.sound ? t.soundOn : t.soundOff}</b><small>&nbsp;</small></button>
         </div>

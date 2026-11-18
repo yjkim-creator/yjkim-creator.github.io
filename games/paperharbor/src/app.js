@@ -564,6 +564,7 @@
       <div class="statgrid"><div><b>${Logic.totalStars(state)}</b><span>${T.stars}</span></div><div><b>${state.sailed}</b><span>${T.sailed}</span></div><div><b>${state.level}</b><span>${T.reached}</span></div><div><b>${Logic.stampDays(state)}</b><span>${T.stampDays}</span></div></div>
       <h3>${T.monthTitle(y, m + 1)}</h3>
       <div class="cal">${T.week.map((w) => `<em>${w}</em>`).join('')}${cells}</div>
+      <button class="primary" data-rank-open style="margin-bottom:8px">${/^en/i.test(navigator.language || '') ? '🏆 Leaderboard' : '🏆 전국 랭킹'}</button>
       <button class="primary" data-act="close">${T.close}</button></div>`;
   }
 

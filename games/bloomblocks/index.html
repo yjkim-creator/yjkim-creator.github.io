@@ -56,7 +56,7 @@ else window.addEventListener("load", () => setTimeout(startOnestore, 800));
     </button>
     <div class="scores">
       <div id="score" aria-live="polite">0</div>
-      <div class="best"><span id="best-label"></span> <span id="best">0</span></div>
+      <div class="best" data-rank-open role="button" style="cursor:pointer"><span id="best-label"></span> <span id="best">0</span> 🏆</div>
     </div>
     <button id="sound" class="icon" type="button" aria-label="Sound" aria-pressed="true">
       <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -76,10 +76,13 @@ else window.addEventListener("load", () => setTimeout(startOnestore, 800));
       <p id="overlay-detail"></p>
       <button id="overlay-primary" type="button"></button>
       <button id="overlay-secondary" class="ghost" type="button"></button>
+      <button class="ghost" type="button" data-rank-open>🏆 전국 랭킹</button>
     </div>
   </section>
 
   <script src="game.js"></script>
   <script src="app.js"></script>
+<script src="leaderboard.js"></script>
+<script>window.Rank && Rank.setup(Object.assign({"game": "bloomblocks", "title": "Bloom Blocks · 최고 점수", "unit": "점", "max": 10000000, "theme": {"panel": "#221e4a", "text": "#f6f3ff", "mute": "#a9a3cf", "accent": "#ffb347", "accentText": "#2b1a00"}}, { read: function () { return Number(localStorage.getItem('bloom.best')); } }));</script>
 </body>
 </html>

@@ -177,6 +177,7 @@ else window.addEventListener("load", () => setTimeout(startOnestore, 800));
   <div class="tag">끝없는 네온 하이웨이를 질주하라</div>
   <button id="playBtn" class="btn big">▶ START</button>
   <div class="best">BEST <b id="bestT">0</b></div>
+  <button class="btn ghost" data-rank-open style="margin-top:12px">🏆 RANKING</button>
   <div class="howto">
     <span>◀ ▶ 화면 왼쪽 · 오른쪽을 눌러 핸들 조작</span>
     <span>⚡ 니트로 버튼을 누르고 있으면 부스트</span>
@@ -202,6 +203,7 @@ else window.addEventListener("load", () => setTimeout(startOnestore, 800));
     <div><i>최대 콤보</i><b id="stCombo"></b></div>
   </div>
   <div class="row"><button id="retryBtn" class="btn big">↻ RETRY</button><button id="menuBtn" class="btn ghost">MENU</button></div>
+  <div class="row"><button class="btn ghost" data-rank-open>🏆 RANKING</button></div>
 </div>
 
 <script>
@@ -988,6 +990,7 @@ function gameOver() {
   show('hud', false); show('touch', false); show('over', true);
   if (window.onestoreAd) window.onestoreAd.atBreak();
   const sc = Math.floor(score);
+  if (window.Rank && !/shot=/.test(location.hash)) Rank.submit(sc);
   const isBest = sc > store.best;
   if (isBest) { store.best = sc; save(); }
   $('finalScore').textContent = sc.toLocaleString();
@@ -1525,5 +1528,7 @@ window.__ns = { get state() { return state; }, get speed() { return speed; }, ge
 loop();
 })();
 </script>
+<script src="src/leaderboard.js"></script>
+<script>window.Rank && Rank.setup(Object.assign({"game": "nitrosurge", "title": "Nitro Surge · 최고 점수", "unit": "점", "max": 50000000, "theme": {"bg": "rgba(8,0,20,.78)", "panel": "#1a0630", "text": "#ffffff", "mute": "#ffb3f0", "accent": "#ff2bd6", "accentText": "#ffffff", "line": "rgba(255,255,255,.14)", "font": "system-ui,sans-serif"}}, { read: function () { return JSON.parse(localStorage.getItem('nitrosurge')||'{}').best; } }));</script>
 </body>
 </html>

@@ -277,7 +277,8 @@
         <p class="next">${nextLine()}</p>
       </div>
       <button class="go" id="goBtn">${run ? T.resume : T.start}</button>
-      <button class="ghost" id="titleBook">${T.book}</button>`;
+      <button class="ghost" id="titleBook">${T.book}</button>
+      <button class="ghost" data-rank-open>${/^en/i.test(navigator.language || '') ? '🏆 Leaderboard' : '🏆 전국 랭킹'}</button>`;
     sheet.classList.add('open');
     $('#goBtn').addEventListener('click', (e) => { e.stopPropagation(); startRun(); });
     $('#titleBook').addEventListener('click', (e) => { e.stopPropagation(); openBook(); });
@@ -288,6 +289,7 @@
     const info = endInfo;
     if (window.onestoreAd) window.onestoreAd.atBreak();
     const h = Logic.height(info.run);
+    if (window.Rank && !/shot=/.test(location.hash)) Rank.submit(h);
     const st = Logic.stars(info.run);
     sheet.innerHTML = `
       <div class="receipt end">
@@ -299,6 +301,7 @@
         <p class="next">${nextLine()}</p>
       </div>
       <button class="go" id="againBtn">${T.again}</button>
+      <button class="ghost" data-rank-open>${/^en/i.test(navigator.language || '') ? '🏆 Leaderboard' : '🏆 전국 랭킹'}</button>
       <div class="row"><button class="ghost" id="endBook">${T.book}</button><button class="ghost" id="endMenu">${T.menu}</button></div>`;
     sheet.classList.add('open');
     if (info.unlocked.length) setTimeout(() => Sfx.play('power'), 400);

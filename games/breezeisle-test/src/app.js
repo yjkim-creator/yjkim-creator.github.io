@@ -266,6 +266,7 @@
 
   function gameOver() {
     if (!demo) { save = L.record(save, run); save.plays += 1; writeSave(); }
+    if (!demo) if (window.Rank && !/shot=/.test(location.hash)) Rank.submit(run.score);
     const isDaily = run.mode === 'daily';
     const best = isDaily ? save.days[run.date] || run.score : save.best;
     const newBest = !demo && run.score >= best && run.score > 0;
@@ -276,7 +277,8 @@
       <p class="big">${fmt(run.score)}<small>${S.pts}</small></p>
       <p class="sub">${isDaily ? S.overDaily : S.overFree} ${fmt(Math.max(best, run.score))} · ${S.turn} ${run.turn}</p>
       ${madeSummary(run)}
-      <div class="row"><button class="primary" data-act="again">${S.again}</button><button data-act="${isDaily ? 'toFree' : 'toDaily'}">${isDaily ? S.toFree : S.toDaily}</button></div>`, 'over');
+      <div class="row"><button class="primary" data-act="again">${S.again}</button><button data-act="${isDaily ? 'toFree' : 'toDaily'}">${isDaily ? S.toFree : S.toDaily}</button></div>
+      <div class="row"><button data-rank-open>${/^en/i.test(navigator.language || '') ? '🏆 Leaderboard' : '🏆 전국 랭킹'}</button></div>`, 'over');
   }
 
   function openCodex() {
@@ -302,7 +304,7 @@
       <p class="sub">${S.howSea}</p><ul class="codex sea">${L.SEA.map(card).join('')}</ul>
       <p class="sub">${S.week}</p>
       <div class="bars">${days.map((d) => `<span style="--h:${Math.round((d.v / max) * 100)}%"><i></i><small>${d.key.slice(8)}</small></span>`).join('')}</div>
-      <div class="row"><button class="primary" data-act="close">${S.close}</button></div>`, 'codex');
+      <div class="row"><button data-rank-open>${/^en/i.test(navigator.language || '') ? '🏆 Leaderboard' : '🏆 전국 랭킹'}</button><button class="primary" data-act="close">${S.close}</button></div>`, 'codex');
   }
 
   function switchMode(next) {

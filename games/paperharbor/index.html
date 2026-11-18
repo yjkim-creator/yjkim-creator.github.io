@@ -53,5 +53,7 @@ startOnestore();
   <script src="lib/sfx.js"></script>
   <script src="src/logic.js"></script>
   <script src="src/app.js"></script>
+<script src="src/leaderboard.js"></script>
+<script>window.Rank && Rank.setup(Object.assign({"game": "paperharbor", "title": "종이배 포구 · 모은 별", "unit": "★", "max": 100000, "theme": {"bg": "rgba(18,63,78,.6)", "panel": "#FBF4E4", "text": "#2E2A24", "mute": "#7a6f5f", "accent": "#1F6F8B", "accentText": "#FBF4E4", "line": "rgba(46,42,36,.12)", "font": "\"Pretendard\",\"Noto Sans KR\",system-ui,sans-serif"}}, { read: function () { return window.Logic.totalStars(window.Logic.sanitize(JSON.parse(localStorage.getItem('paperharbor-v1')))); } }));</script>
 </body>
 </html>

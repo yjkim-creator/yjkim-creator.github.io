@@ -52,5 +52,7 @@ else window.addEventListener("load", () => setTimeout(startOnestore, 800));
   <main id="app"></main>
   <script src="src/logic.js"></script>
   <script src="src/app.js"></script>
+<script src="src/leaderboard.js"></script>
+<script>window.Rank && Rank.setup(Object.assign({"game": "lanternlink", "title": "등불 골목 · 밝힌 골목 수", "unit": "곳", "max": 100000, "theme": {"panel": "#1b2048", "text": "#f4ecda", "mute": "#9fa3cf", "accent": "#ffc96b", "accentText": "#11143a"}}, { read: function () { return +(JSON.parse(localStorage.getItem('lanternlink-v1')||'{}').cleared)||0; } }));</script>
 </body>
 </html>

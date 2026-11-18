@@ -453,6 +453,7 @@
 
   function showGameOver() {
     const record = state.score > startBest && state.score > 0;
+    if (window.Rank && !/shot=/.test(location.hash)) Rank.submit(state.score);
     soundOver();
     if (window.onestoreAd) window.onestoreAd.atBreak();
     showOverlay({

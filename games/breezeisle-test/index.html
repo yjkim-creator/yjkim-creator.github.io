@@ -56,5 +56,7 @@ startOnestore();
   <script src="src/logic.js"></script>
   <script src="src/scene.js"></script>
   <script src="src/app.js"></script>
+<script src="src/leaderboard.js"></script>
+<script>window.Rank && Rank.setup(Object.assign({"game": "breezeisle", "title": "산들섬 정원 · 최고 점수", "unit": "점", "max": 10000000, "theme": {"bg": "rgba(23,59,84,.5)", "panel": "#fff8ea", "text": "#173b54", "mute": "#5b7487", "accent": "#2FA58C", "accentText": "#ffffff", "line": "rgba(23,59,84,.12)", "font": "\"Pretendard\",\"Apple SD Gothic Neo\",\"Malgun Gothic\",\"Noto Sans KR\",system-ui,sans-serif"}}, { read: function () { return (function(s){var b=+s.best||0;for(var k in (s.days||{}))b=Math.max(b,+s.days[k]||0);return b;})(JSON.parse(localStorage.getItem('breezeisle-v1')||'{}')); } }));</script>
 </body>
 </html>

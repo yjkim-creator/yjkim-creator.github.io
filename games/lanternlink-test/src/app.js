@@ -244,6 +244,7 @@
         <div><b>${state.cleared}</b><span>${T.cleared}</span></div>
         <div><b>${state.free.level}</b><span>${T.level}</span></div>
       </div>
+      <div class="row"><button class="lit-btn" data-rank-open>${/^en/i.test(navigator.language || '') ? '🏆 Leaderboard' : '🏆 전국 랭킹'}</button></div>
       <div class="month"><button class="round" data-act="prevMonth" aria-label="${T.prev}">‹</button><h3>${T.month(y, m)}</h3>
         <button class="round" data-act="nextMonth" aria-label="${T.nextMonth}" ${canNext ? '' : 'disabled'}>›</button></div>
       <div class="weekhead">${T.week.map((w) => `<span>${w}</span>`).join('')}</div>

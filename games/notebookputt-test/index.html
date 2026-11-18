@@ -52,5 +52,7 @@ else window.addEventListener("load", () => setTimeout(startOnestore, 800));
   <main id="app"></main>
   <script src="src/logic.js"></script>
   <script src="src/app.js"></script>
+<script src="src/leaderboard.js"></script>
+<script>window.Rank && Rank.setup(Object.assign({"game": "notebookputt", "title": "공책 골프 · 계단 코스 최고 층", "unit": "층", "max": 99999, "theme": {"bg": "rgba(31,47,77,.55)", "panel": "#fffdf6", "text": "#1f2f4d", "mute": "#5a6b89", "accent": "#2f5da8", "accentText": "#ffffff", "line": "rgba(31,47,77,.12)", "font": "\"Noto Sans KR\",\"Apple SD Gothic Neo\",system-ui,sans-serif"}}, { read: function () { return (function(s){var b=+((s.ladder||{}).best)||0;return b>1?b:0;})(JSON.parse(localStorage.getItem('notebook-putt-v1')||'{}')); } }));</script>
 </body>
 </html>

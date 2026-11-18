@@ -614,7 +614,8 @@
       ${scorecard(d.date, d.scores)}
       <p class="note">${TEXT.tomorrow} · ${TEXT.streakDays} ${L.streak(state.history, d.date)}</p>
       <button class="primary" id="goLadder">${TEXT.goLadder}</button>
-      <button class="ghost" id="goRec">${TEXT.records}</button>`);
+      <button class="ghost" id="goRec">${TEXT.records}</button>
+      <button class="ghost" data-rank-open>${/^en/i.test(navigator.language || '') ? '🏆 Leaderboard' : '🏆 전국 랭킹'}</button>`);
     $('goLadder').addEventListener('click', () => setMode('ladder'));
     $('goRec').addEventListener('click', () => { sfx.tap(); openRecords(); });
   }
@@ -654,6 +655,7 @@
         <div><b>${state.ladder.best}</b><small>${TEXT.ladderBest}</small></div>
         <div><b>${L.streak(state.history, today())}</b><small>${TEXT.streakDays}</small></div>
       </div>
+      <button class="ghost" data-rank-open style="width:100%;margin:6px 0 10px">${/^en/i.test(navigator.language || '') ? '🏆 Leaderboard' : '🏆 전국 랭킹'}</button>
       <div class="month">
         <button class="icon" id="mPrev" aria-label="${TEXT.prev}"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
         <h3>${TEXT.months(y, m)}</h3>

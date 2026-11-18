@@ -54,5 +54,7 @@ else window.addEventListener("load", () => setTimeout(startOnestore, 800));
   <script src="src/logic.js"></script>
   <script src="src/art.js"></script>
   <script src="src/app.js"></script>
+<script src="src/leaderboard.js"></script>
+<script>window.Rank && Rank.setup(Object.assign({"game": "frostpass", "title": "서리 고개 · 최고 점수", "unit": "점", "max": 100000, "theme": {"panel": "#1F2A4F", "text": "#EEF3FC", "mute": "#9FB0D3", "accent": "#FFC857", "accentText": "#1B2440"}}, { read: function () { return (function(m){var b=+m.best||0;for(var k in (m.days||{}))b=Math.max(b,+m.days[k].score||0);return b;})(JSON.parse(localStorage.getItem('frostpass-v1')||'{}')); } }));</script>
 </body>
 </html>
