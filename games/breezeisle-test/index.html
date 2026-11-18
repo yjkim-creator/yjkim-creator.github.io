@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>산들섬 정원</title>
+  <link rel="stylesheet" href="src/style.css">
+  <script type="module" src="https://h5sdk.onestore.net/lib/v1.1.0/onestore-h5-sdk.min.js"></script>
+  <script type="module">
+// 원스토어 앱 안에서 실행될 때 SDK와 연결합니다. 일반 브라우저에서는 아무 일도 하지 않습니다.
+import { createSDK } from "https://h5sdk.onestore.net/lib/v1.1.0/onestore-h5-sdk.min.js";
+
+// 검사 화면이 듣기 시작한 뒤에 인사(hello)를 보내도록 페이지 로드 후 잠깐 기다립니다.
+function startOnestore() {
+  const sdk = createSDK();
+  sdk.on("pause", () => {});
+  sdk.on("resume", () => {});
+  sdk.initializeAsync()
+    .then((info) => {
+      if (info && info.err) return; // 원스토어 앱 밖(일반 브라우저)
+      sdk.setLoadingProgress(100);
+      return sdk.startGameAsync();
+    })
+    .catch((e) => console.warn("onestore sdk", e && (e.reason || e.message)));
+}
+// 모듈 스크립트는 문서 해석 뒤에 실행되므로 load 를 기다리지 않고 바로 연결합니다(검사 팝업에서 load 가 늦을 수 있음).
+startOnestore();
+  </script>
+</head>
+<body>
+  <main id="app"></main>
+  <script src="lib/three.min.js"></script>
+  <script src="lib/kit3d.js"></script>
+  <script src="lib/sfx.js"></script>
+  <script src="src/logic.js"></script>
+  <script src="src/scene.js"></script>
+  <script src="src/app.js"></script>
+</body>
+</html>
