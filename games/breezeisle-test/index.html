@@ -19,11 +19,32 @@ function startOnestore() {
     .then((info) => {
       if (info && info.err) return; // 원스토어 앱 밖(일반 브라우저)
       sdk.setLoadingProgress(100);
-      return sdk.startGameAsync();
+      return sdk.startGameAsync().then(() => setupAds(sdk));
     })
     .catch((e) => console.warn("onestore sdk", e && (e.reason || e.message)));
 }
 // 모듈 스크립트는 문서 해석 뒤에 실행되므로 load 를 기다리지 않고 바로 연결합니다(검사 팝업에서 load 가 늦을 수 있음).
+// 전면 광고: 자연스러운 쉬는 구간에서만, 2분 30초에 한 번 이하로 보여 줍니다.
+const AD_ID = "xCLW5-GGJ8-QTJF-RPTP";
+const AD_GAP = 150000;
+window.onestoreAd = { atBreak() {} };
+function setupAds(sdk) {
+  try { if (!sdk.ads || !sdk.ads.isSupported("interstitial")) return; } catch (e) { return; }
+  let last = Date.now();
+  let busy = false;
+  try { sdk.ads.loadInterstitial({ placementId: AD_ID }); } catch (e) {}
+  window.onestoreAd.atBreak = () => {
+    if (busy || Date.now() - last < AD_GAP) return;
+    busy = true;
+    sdk.ads.showInterstitialAsync({ placementId: AD_ID })
+      .catch(() => {})
+      .then(() => {
+        busy = false;
+        last = Date.now();
+        try { sdk.ads.loadInterstitial({ placementId: AD_ID }); } catch (e) {}
+      });
+  };
+}
 startOnestore();
   </script>
 </head>
