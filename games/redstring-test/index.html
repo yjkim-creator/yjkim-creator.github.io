@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>붉은 실 단서판</title>
+  <link rel="stylesheet" href="src/style.css">
+  <script type="module" src="https://h5sdk.onestore.net/lib/v1.1.0/onestore-h5-sdk.min.js"></script>
+  <script type="module">
+// 원스토어 앱 안에서 실행될 때 SDK와 연결한다. 일반 브라우저에서는 아무 일도 하지 않는다.
+import { createSDK } from "https://h5sdk.onestore.net/lib/v1.1.0/onestore-h5-sdk.min.js";
+const AD_ID = "";
+const AD_GAP = 150000;
+window.onestoreAd = { atBreak() {} };
+function setupAds(sdk) {
+  if (!AD_ID) return;
+  try { if (!sdk.ads || !sdk.ads.isSupported("interstitial")) return; } catch (e) { return; }
+  let last = Date.now();
+  let busy = false;
+  try { sdk.ads.loadInterstitial({ placementId: AD_ID }); } catch (e) {}
+  window.onestoreAd.atBreak = () => {
+    if (busy || Date.now() - last < AD_GAP) return;
+    busy = true;
+    sdk.ads.showInterstitialAsync({ placementId: AD_ID }).catch(() => {}).then(() => {
+      busy = false;
+      last = Date.now();
+      try { sdk.ads.loadInterstitial({ placementId: AD_ID }); } catch (e) {}
+    });
+  };
+}
+function startOnestore() {
+  const sdk = createSDK();
+  sdk.on("pause", () => {});
+  sdk.on("resume", () => {});
+  sdk.initializeAsync()
+    .then((info) => {
+      if (info && info.err) return;
+      sdk.setLoadingProgress(100);
+      return sdk.startGameAsync().then(() => setupAds(sdk));
+    })
+    .catch((e) => console.warn("onestore sdk", e && (e.reason || e.message)));
+}
+// 검사 팝업에서는 load 가 늦을 수 있어 기다리지 않고 바로 연결한다.
+startOnestore();
+  </script>
+  <script>document.documentElement.classList.add("has-rank");</script>
+</head>
+<body>
+  <main id="app"></main>
+  <script src="lib/sfx.js"></script>
+  <script src="src/bank.js"></script>
+  <script src="src/logic.js"></script>
+  <script src="src/app.js"></script>
+<script src="src/leaderboard.js"></script>
+<script>window.Rank && Rank.setup(Object.assign({"game": "redstring", "title": "붉은 실 단서판 · 밝혀낸 단서", "unit": "개", "max": 100000, "theme": {"accent": "#B3362B"}}, { read: function () { try { return Number(Logic.foundCount(Logic.sanitize(JSON.parse(localStorage.getItem('redstring-v1'))), /^ko/i.test(navigator.language||'')?'ko':'en')) || 0; } catch (e) { return 0; } } }));</script>
+</body>
+</html>
