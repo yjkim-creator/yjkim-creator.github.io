@@ -14,13 +14,13 @@
   const T = KO ? {
     rank: '전국 랭킹', week: '이번 주', all: '전체', weekNote: '매주 월요일 0시에 새로 시작해요', me: '내 기록', myRank: (n) => `${n}위`, aboutRank: (n) => `약 ${n}위`, none: '아직 기록이 없어요',
     empty: '첫 번째 주인공이 되어 보세요!', offline: '인터넷에 연결되면 랭킹을 볼 수 있어요.\n게임은 그대로 즐길 수 있어요.',
-    loading: '불러오는 중…', close: '닫기', nameTitle: '랭킹에 쓸 별명', nameHint: '한글·영문·숫자 2~10자. 별명과 점수만 저장돼요.',
+    loading: '불러오는 중…', close: '닫기', privacy: '광고 개인정보 설정', nameTitle: '랭킹에 쓸 별명', nameHint: '한글·영문·숫자 2~10자. 별명과 점수만 저장돼요.',
     save: '저장', change: '별명 바꾸기', bad: '쓸 수 없는 별명이에요', short: '2~10자로 적어 주세요', pending: '연결되면 올라가요',
     notReady: '랭킹 준비 중이에요',
   } : {
     rank: 'Leaderboard', week: 'This week', all: 'All time', weekNote: 'Resets every Monday 00:00 KST', me: 'My best', myRank: (n) => `#${n}`, aboutRank: (n) => `~#${n}`, none: 'No record yet',
     empty: 'Be the first one on the board!', offline: 'Connect to the internet to see the leaderboard.\nThe game still works offline.',
-    loading: 'Loading…', close: 'Close', nameTitle: 'Your nickname', nameHint: '2–10 letters or numbers. Only the nickname and score are stored.',
+    loading: 'Loading…', close: 'Close', privacy: 'Ad privacy settings', nameTitle: 'Your nickname', nameHint: '2–10 letters or numbers. Only the nickname and score are stored.',
     save: 'Save', change: 'Change nickname', bad: 'That nickname is not allowed', short: 'Use 2–10 characters', pending: 'Will upload when online',
     notReady: 'Leaderboard coming soon',
   };
@@ -253,9 +253,17 @@
       if (a === 'close') close();
       if (a === 'name') askName();
       if (a === 'save') saveName();
+      if (a === 'privacy') { try { window.AndroidAds.privacyOptions(); } catch (err) { /* */ } }
       if (a === 'week' || a === 'all') { tab = a; show(); }
     }));
     return root;
+  }
+
+  // 유럽 등 동의가 필요한 지역의 Android 앱에서만 광고 동의를 다시 고를 수 있는 링크를 보여 준다.
+  function privacyLink() {
+    let need = false;
+    try { need = !!(window.AndroidAds && window.AndroidAds.privacyRequired && window.AndroidAds.privacyRequired()); } catch (e) { /* */ }
+    return need ? `<p class="kk-hint" style="text-align:center"><button data-kk="privacy" style="background:none;border:0;color:inherit;text-decoration:underline;font:inherit;padding:4px">${T.privacy}</button></p>` : '';
   }
 
   function askName() {
@@ -298,7 +306,7 @@
     const head = `<h2>🏆 ${T.rank}</h2><p class="kk-sub">${esc(cfg.title || '')}</p>
       <div class="kk-tabs"><button data-kk="week" class="${weekly ? 'on' : ''}">${T.week}</button><button data-kk="all" class="${weekly ? '' : 'on'}">${T.all}</button></div>`;
     const meBox = (txt) => `<div class="kk-me"><div><small>${esc(p.name)}</small>${mineBest ? `${fmt(mineBest)} ${esc(cfg.unit || '')}` : T.none}</div><div>${txt}</div></div>`;
-    const foot = `${weekly ? `<p class="kk-hint" style="text-align:center">${T.weekNote}</p>` : ''}<div class="kk-row"><button data-kk="name">${T.change}</button><button class="kk-go" data-kk="close">${T.close}</button></div>`;
+    const foot = `${weekly ? `<p class="kk-hint" style="text-align:center">${T.weekNote}</p>` : ''}<div class="kk-row"><button data-kk="name">${T.change}</button><button class="kk-go" data-kk="close">${T.close}</button></div>${privacyLink()}`;
     shell(`${head}${meBox('')}<p class="kk-msg">${T.loading}</p>${foot}`);
     const mine = root;
     const myTab = tab;
