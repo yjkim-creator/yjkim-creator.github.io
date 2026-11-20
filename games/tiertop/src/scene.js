@@ -5,7 +5,7 @@
   const PLATE_TOP = 0.62; // 받침 윗면 높이
 
   function build(container) {
-    const stage = Kit3D.stage(container, { sky: ['#ffcfc0', '#fff3e3'], fog: 60, shadowSize: 6, fov: 50 });
+    const stage = Kit3D.stage(container, { sky: ['#ffcfc0', '#fff3e3'], fog: 60, shadowSize: 6, fov: 50, exposure: 0.95 });
     const { scene, camera } = stage;
     stage.hemi.intensity = 1.25;
     const toon = Kit3D.toon;

@@ -188,7 +188,7 @@
     const f = Logic.flavor(top.flavor);
     if (event.type === 'perfect') {
       Sfx.play('perfect', { pitch: 1 + Math.min(event.streak - 1, 8) * 0.06 });
-      burst(topPos, ['#ffe27a', '#ffffff', f.color], 18);
+      burst(topPos, ['#ffb000', '#ffffff', f.color], 18);
       Kit3D.shake(stage, 0.08);
       pop(event.streak > 1 ? `${T.perfect} ×${event.streak}` : T.perfect, 'gold');
       if (event.grew) setTimeout(() => pop(T.grew, 'soft', 47), 260);
@@ -375,7 +375,8 @@
       world.ring.position.set(px, ringY, pz);
       world.ring.scale.set(top.r, top.r, 1);
       const close = Math.hypot(px - top.x, pz - top.z) <= Logic.PERFECT;
-      world.ringMat.color.set(close ? '#ffd23f' : '#ffffff');
+      world.ringMat.color.set(close ? '#ff8c00' : '#ffffff');
+      world.ringMat.opacity = close ? 1 : 0.75;
       world.centerDot.visible = true;
       world.centerDot.position.set(top.x, ringY - 0.005, top.z);
       if (squashT > 0) syncCake(Math.sin(squashT * Math.PI) * 0.35);

@@ -54,9 +54,9 @@ else window.addEventListener("load", () => setTimeout(startOnestore, 800));
   <script src="lib/three.min.js"></script>
   <script src="lib/kit3d.js"></script>
   <script src="lib/sfx.js"></script>
-  <script src="src/logic.js"></script>
-  <script src="src/scene.js"></script>
-  <script src="src/app.js"></script>
+  <script src="src/logic.js?v=7"></script>
+  <script src="src/scene.js?v=7"></script>
+  <script src="src/app.js?v=7"></script>
 <script src="src/leaderboard.js"></script>
 <script>window.Rank && Rank.setup(Object.assign({"game": "tiertop", "title": "층층 베이커리 · 최고 높이", "unit": "층", "max": 100000, "theme": {"bg": "rgba(79,49,39,.5)", "panel": "#fffdf8", "text": "#4f3127", "mute": "#8a6152", "accent": "#e2627f", "accentText": "#ffffff", "line": "rgba(79,49,39,.12)", "font": "'Trebuchet MS','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',system-ui,sans-serif"}}, { read: function () { return +(JSON.parse(localStorage.getItem('tiertop-save-v1')||'{}').best)||0; } }));</script>
 </body>

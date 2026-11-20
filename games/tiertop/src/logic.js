@@ -10,18 +10,18 @@
   const GROW = 0.12;
 
   const FLAVORS = [
-    { id: 'vanilla', ko: '바닐라', en: 'Vanilla', color: '#f6e3b4', cream: '#fffaf0', need: 0 },
-    { id: 'strawberry', ko: '딸기', en: 'Strawberry', color: '#f59ab0', cream: '#fff0f4', need: 0 },
-    { id: 'choco', ko: '초코', en: 'Chocolate', color: '#7a4a32', cream: '#f3dcc8', need: 0 },
-    { id: 'matcha', ko: '말차', en: 'Matcha', color: '#9cc47a', cream: '#f2f8e8', need: 25 },
-    { id: 'mango', ko: '망고', en: 'Mango', color: '#ffbf47', cream: '#fff6dc', need: 60 },
-    { id: 'blueberry', ko: '블루베리', en: 'Blueberry', color: '#7f86d8', cream: '#eef0ff', need: 100 },
-    { id: 'taro', ko: '토란', en: 'Taro', color: '#b89ad6', cream: '#f6efff', need: 150 },
-    { id: 'lemon', ko: '레몬', en: 'Lemon', color: '#f3e36a', cream: '#fffde8', need: 210 },
-    { id: 'redvelvet', ko: '레드벨벳', en: 'Red Velvet', color: '#c8433f', cream: '#fff4ee', need: 280 },
-    { id: 'mint', ko: '민트', en: 'Mint', color: '#86dcc6', cream: '#effcf8', need: 360 },
-    { id: 'blacksesame', ko: '흑임자', en: 'Black Sesame', color: '#5b5862', cream: '#f0eef2', need: 450 },
-    { id: 'pumpkin', ko: '단호박', en: 'Pumpkin', color: '#ef8f3c', cream: '#fff1e2', need: 550 },
+    { id: 'vanilla', ko: '바닐라', en: 'Vanilla', color: '#f2c95a', cream: '#fbe3a0', need: 0 },
+    { id: 'strawberry', ko: '딸기', en: 'Strawberry', color: '#f0587e', cream: '#ffb3c6', need: 0 },
+    { id: 'choco', ko: '초코', en: 'Chocolate', color: '#5a2e1a', cream: '#b07a5a', need: 0 },
+    { id: 'matcha', ko: '말차', en: 'Matcha', color: '#6fa846', cream: '#c4e0a6', need: 25 },
+    { id: 'mango', ko: '망고', en: 'Mango', color: '#ffa21a', cream: '#ffd98a', need: 60 },
+    { id: 'blueberry', ko: '블루베리', en: 'Blueberry', color: '#4f5bd1', cream: '#b6bcf2', need: 100 },
+    { id: 'taro', ko: '토란', en: 'Taro', color: '#9466c9', cream: '#d4bdf0', need: 150 },
+    { id: 'lemon', ko: '레몬', en: 'Lemon', color: '#f5d82a', cream: '#fff19a', need: 210 },
+    { id: 'redvelvet', ko: '레드벨벳', en: 'Red Velvet', color: '#b0242a', cream: '#f3c9c2', need: 280 },
+    { id: 'mint', ko: '민트', en: 'Mint', color: '#3fc4a2', cream: '#aeeedd', need: 360 },
+    { id: 'blacksesame', ko: '흑임자', en: 'Black Sesame', color: '#3a3740', cream: '#a8a5ae', need: 450 },
+    { id: 'pumpkin', ko: '단호박', en: 'Pumpkin', color: '#e8731f', cream: '#ffc690', need: 550 },
   ];
 
   const CUSTOMERS = [
