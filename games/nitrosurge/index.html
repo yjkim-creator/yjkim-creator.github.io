@@ -919,6 +919,7 @@ function resetRun() {
   lap = 0; zoneIdx = 0; maxSpeed = MAXS; particles = []; popups = []; flash = 0; shake = 0;
   for (const s of segments) for (const p of s.pickups) p.lap = -1;
   placeCars();
+  updateHearts(); // 새 판 시작 때 하트 표시를 3개로 다시 그린다
 }
 
 // ── 입력 ──
