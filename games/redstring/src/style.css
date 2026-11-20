@@ -442,3 +442,9 @@ body.shot .veil { position: absolute; }
   .strands .date { font-size: 11px; }
   .icon { width: 44px; }
 }
+
+/* 키가 낮은 휴대폰(높이 700px 이하)에서는 쪽지 줄을 낮춰 아래 버튼이 한 화면에 들어오게 한다. */
+@media (max-height: 700px) {
+  .grid { grid-auto-rows: minmax(50px, 76px); gap: 7px 6px; }
+  .note { min-height: 50px; padding-top: 14px; padding-bottom: 6px; }
+}

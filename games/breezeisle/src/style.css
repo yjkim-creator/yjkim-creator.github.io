@@ -5,6 +5,7 @@
   --paper: #fff8ea;
   --paper2: #ffeccc;
   --coral: #ff7a59;
+  --coral-ink: #c94b2c; /* 크림 바탕 위 글자용 진한 산호색(대비 4.5:1 이상) */
   --sun: #ffd23f;
   --sea: #4fc0d8;
   --font: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
@@ -23,11 +24,11 @@ button { font-family: inherit; color: inherit; cursor: pointer; }
 .mode .flag { flex: none; width: 22px; height: 22px; border-radius: 50%; background: radial-gradient(circle at 50% 60%, var(--sun) 0 38%, transparent 40%), linear-gradient(#ffb36b, #ff7a59); border: 2px solid var(--ink); }
 .mode.free .flag { background: radial-gradient(circle at 50% 55%, #fff 0 30%, transparent 32%), linear-gradient(var(--brand), #1d7e6b); }
 .mode .label { display: flex; flex-direction: column; overflow: hidden; white-space: nowrap; }
-.mode .label small { font-size: 11px; font-weight: 700; color: var(--coral); }
+.mode .label small { font-size: 12px; font-weight: 800; color: var(--coral-ink); }
 .board { display: flex; flex-direction: column; align-items: center; min-width: 108px; padding: 4px 14px 6px; border: 2px solid var(--ink); border-radius: 0 0 18px 18px; border-top: 0; margin-top: calc(-1 * max(10px, env(safe-area-inset-top))); padding-top: max(12px, env(safe-area-inset-top)); background: var(--paper); box-shadow: 0 3px 0 var(--ink); }
-.board small { font-size: 11px; font-weight: 800; letter-spacing: .12em; opacity: .65; }
+.board small { font-size: 12px; font-weight: 800; letter-spacing: .12em; opacity: .8; }
 .board b { font-size: 30px; line-height: 1; font-weight: 900; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
-.board em { font-style: normal; font-size: 11px; font-weight: 700; color: var(--coral); margin-top: 2px; }
+.board em { font-style: normal; font-size: 12px; font-weight: 800; color: var(--coral-ink); margin-top: 2px; }
 .tools { justify-self: end; display: flex; gap: 6px; }
 .round { width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 2px solid var(--ink); border-radius: 50%; background: var(--paper); box-shadow: 0 3px 0 var(--ink); }
 .round:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }

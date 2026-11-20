@@ -6,11 +6,10 @@
 <title>Nitro Surge</title>
 <script>
 // 문제가 생기면 화면에 띄워 원인을 알 수 있게 한다.
-window.onerror = function (msg, src, line) {
+window.onerror = function (msg, src, line) { if (!/debug/.test(location.search)) return;
   var d = document.getElementById('err');
   if (!d) { d = document.createElement('div'); d.id = 'err'; d.style.cssText = 'position:fixed;left:8px;right:8px;bottom:8px;z-index:99;background:#300;color:#fff;font:12px monospace;padding:8px;border-radius:6px;white-space:pre-wrap'; (document.body || document.documentElement).appendChild(d); }
-  d.textContent += '오류: ' + msg + ' (줄 ' + line + ')
-';
+  d.textContent += '오류: ' + msg + ' (줄 ' + line + ')\n';
 };
 </script>
 <style>
