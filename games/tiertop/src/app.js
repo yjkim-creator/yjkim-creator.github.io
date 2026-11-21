@@ -23,6 +23,12 @@
       eight: ['8자 짤주머니', '짤주머니가 8자를 그려요. 가운데를 지나는 순간을 노려요.'],
       shrink: ['줄어드는 틀', '층이 조금씩 작아져요. 딱 맞음을 세 번 이으면 다시 넓어져요.'],
       rubato: ['들쭉날쭉 박자', '흔들림이 빨라졌다 느려졌다 해요. 박자를 잘 보고 톡!'],
+      fog: ['구름 가림', '구름이 지나가면 짤주머니와 고리가 잠깐 안 보여요. 흔들리던 박자를 기억해 톡!'],
+      slip: ['미끄러운 크림', '놓은 층이 흔들리던 쪽으로 조금 더 미끄러져요. 고리가 가운데 점에 올 때 톡!'],
+      spin: ['빙글 짤주머니', '짤주머니가 흔들리는 방향이 빙글빙글 빠르게 돌아요. 가운데를 지나는 순간을 노려요.'],
+      dance: ['춤추는 짤주머니', '층마다 흔들리는 폭이 달라져요. 새 층마다 박자를 다시 보세요.'],
+      gust: ['돌개바람', '바람 세기와 방향이 쉬지 않고 바뀌어요. 고리를 잘 보고 톡!'],
+      party: ['구름 위 파티', '지금까지 만난 장치가 섞여 나오는 마지막 장이에요.'],
       mix: ['끝없는 주방', '지금까지 만난 장치가 섞여 나와요. 어디까지 갈 수 있을까요?'],
     },
   } : {
@@ -43,6 +49,12 @@
       eight: ['Figure-eight bag', 'The bag draws a figure eight. Aim for the moment it crosses the middle.'],
       shrink: ['Shrinking pan', 'Each tier comes out a little smaller. Three perfect drops in a row make it grow back.'],
       rubato: ['Wobbly rhythm', 'The swing speeds up and slows down. Watch the beat and tap!'],
+      fog: ['Passing clouds', 'Clouds briefly hide the bag and the ring. Remember the rhythm and tap!'],
+      slip: ['Slippery cream', 'The tier slides a little further the way the bag was swinging. Tap when the ring meets the center dot!'],
+      spin: ['Spinning bag', 'The swing direction spins around quickly. Aim for the moment it crosses the middle.'],
+      dance: ['Dancing bag', 'Each tier swings a different width. Watch the beat again for every tier.'],
+      gust: ['Whirlwind', 'The wind keeps changing strength and direction. Watch the ring and tap!'],
+      party: ['Party in the clouds', 'The final chapter mixes every gadget you have met.'],
       mix: ['Endless kitchen', 'Every gadget so far, mixed together. How far can you go?'],
     },
   };
@@ -59,7 +71,8 @@
   let demo = false;
   let playMode = 'daily'; // daily | stage
   let srun = null; // 단계 판(저장하지 않는다. 앱을 닫으면 그 단계를 처음부터)
-  const WALL = { kitchen: '#ffffff', garden: '#f1fff1', workshop: '#f6e6d6', teahouse: '#eef6e2', night: '#aab2e8', festival: '#fff0fa', endless: '#ffead8' };
+  const WALL = { kitchen: '#ffffff', garden: '#f1fff1', workshop: '#f6e6d6', teahouse: '#eef6e2', night: '#aab2e8', festival: '#fff0fa',
+    greenhouse: '#fbffe6', icecafe: '#eafcff', harvest: '#fff0de', ballroom: '#b7b4e6', castle: '#efdccc', skyparty: '#f3f0ff', endless: '#ffead8' };
   const writeSave = () => {
     if (demo) return;
     try {
@@ -499,7 +512,7 @@
       return `<button class="st${open ? '' : ' lock'}${n === best + 1 ? ' now' : ''}" data-st="${n}" ${open ? '' : `disabled aria-label="${T.locked}"`}>${n}<small>${open ? '★'.repeat(s) + '☆'.repeat(3 - s) : '🔒'}</small></button>`;
     };
     let html = '';
-    for (let c = 0; c < 6; c += 1) {
+    for (let c = 0; c < Logic.CHAPTERS.length - 1; c += 1) {
       const ch = Logic.CHAPTERS[c];
       const d = T.devices[ch.device];
       html += `<h3><span style="--a:${ch.sky[0]};--b:${ch.lace}"></span>${T.chapter(c + 1)} · ${ko ? ch.ko : ch.en}<small>${d[0]}</small></h3><div class="grid">`;
@@ -508,7 +521,7 @@
     }
     const last = Math.max(Logic.STAGE_MAIN + 1, Math.min(Logic.STAGE_CAP, best + 1));
     const from = Math.max(Logic.STAGE_MAIN + 1, last - 19);
-    html += `<h3><span style="--a:${Logic.CHAPTERS[6].sky[0]};--b:${Logic.CHAPTERS[6].lace}"></span>${T.endless}<small>${T.devices.mix[0]}</small></h3><div class="grid">`;
+    html += `<h3><span style="--a:${Logic.CHAPTERS[Logic.CHAPTERS.length - 1].sky[0]};--b:${Logic.CHAPTERS[Logic.CHAPTERS.length - 1].lace}"></span>${T.endless}<small>${T.devices.mix[0]}</small></h3><div class="grid">`;
     for (let n = from; n <= last; n += 1) html += cell(n);
     html += '</div>';
     book.innerHTML = `
@@ -566,7 +579,9 @@
       world.setShift(sh.x, sh.z);
       const nextFlavor = Logic.flavorAt(r, r.layers.length);
       world.paintLayer(world.hover, nextFlavor);
-      world.hover.visible = true;
+      // 구름 가림: 구름이 지나가는 동안은 짤주머니와 고리를 숨긴다(떨어지는 중인 층은 보인다).
+      const clear = !stageOn() || falling || Logic.stageVisible(Logic.stageSpec(srun.stage), swingT);
+      world.hover.visible = clear;
       world.hover.scale.set(top.r, 1, top.r);
       const hoverY = world.layerY(r.layers.length) + 1.5 + Kit3D.ease.outCubic(enter) * 2;
       if (falling) {
@@ -583,7 +598,7 @@
         world.hover.position.set(top.x + off.x, hoverY, top.z + off.z);
         world.hover.rotation.y = Math.sin(time * 1.3) * 0.2;
       }
-      world.bag.visible = true;
+      world.bag.visible = clear;
       world.bag.position.set(world.hover.position.x, (falling ? falling.from : hoverY) + Logic.LAYER_H / 2 + 0.55, world.hover.position.z);
       world.bag.rotation.z = -off.x * 0.12;
       world.bag.rotation.x = off.z * 0.12;
@@ -595,7 +610,7 @@
       const lz = falling ? falling.z : top.z + aim.z;
       const px = lx + sh.x;
       const pz = lz + sh.z;
-      world.ring.visible = true;
+      world.ring.visible = clear;
       world.ring.position.set(px, ringY, pz);
       world.ring.scale.set(top.r, top.r, 1);
       const close = Math.hypot(lx - top.x, lz - top.z) <= Logic.PERFECT;

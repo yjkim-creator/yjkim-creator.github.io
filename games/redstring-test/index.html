@@ -12,6 +12,9 @@ import { createSDK } from "https://h5sdk.onestore.net/lib/v1.1.0/onestore-h5-sdk
 const AD_ID = "xWEW9-92LQ-2VLM-B6PA";
 const AD_GAP = 150000;
 window.onestoreAd = { atBreak() {} };
+let adOpen = false;
+let adBusy = false;
+let adQuietUntil = 0;
 function setupAds(sdk) {
   if (!AD_ID) return;
   try { if (!sdk.ads || !sdk.ads.isSupported("interstitial")) return; } catch (e) { return; }
@@ -21,8 +24,11 @@ function setupAds(sdk) {
   window.onestoreAd.atBreak = () => {
     if (busy || Date.now() - last < AD_GAP) return;
     busy = true;
+    adBusy = true;
     sdk.ads.showInterstitialAsync({ placementId: AD_ID }).catch(() => {}).then(() => {
       busy = false;
+      adBusy = false;
+      adQuietUntil = Date.now() + 800;
       last = Date.now();
       try { sdk.ads.loadInterstitial({ placementId: AD_ID }); } catch (e) {}
     });
@@ -30,8 +36,14 @@ function setupAds(sdk) {
 }
 function startOnestore() {
   const sdk = createSDK();
-  sdk.on("pause", () => {});
-  sdk.on("resume", () => {});
+  // 뒤로가기: 원스토어 앱은 게임이 '처리함(true)'이라고 답하지 않으면 게임을 끝낸다.
+  // 광고가 떠 있거나 막 닫힌 때는 처리한 것으로 답해 광고만 닫히게 하고, 그 밖에는 게임의 appBack(열린 창 닫기)에 맡긴다.
+  sdk.on("pause", (e) => { if (e && e.reason === "ad") adOpen = true; });
+  sdk.on("resume", () => { if (adOpen) adQuietUntil = Date.now() + 800; adOpen = false; });
+  if (typeof sdk.onBackPressed === "function") sdk.onBackPressed(() => {
+    if (adOpen || adBusy || Date.now() < adQuietUntil) return true;
+    try { return window.appBack ? window.appBack() === true : false; } catch (e) { return false; }
+  });
   sdk.initializeAsync()
     .then((info) => {
       if (info && info.err) return;

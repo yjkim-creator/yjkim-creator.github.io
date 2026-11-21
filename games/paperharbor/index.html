@@ -13,8 +13,14 @@ import { createSDK } from "https://h5sdk.onestore.net/lib/v1.1.0/onestore-h5-sdk
 // 검사 화면이 듣기 시작한 뒤에 인사(hello)를 보내도록 페이지 로드 후 잠깐 기다립니다.
 function startOnestore() {
   const sdk = createSDK();
-  sdk.on("pause", () => {});
-  sdk.on("resume", () => {});
+  // 뒤로가기: 원스토어 앱은 게임이 '처리함(true)'이라고 답하지 않으면 게임을 끝낸다.
+  // 광고가 떠 있거나 막 닫힌 때는 처리한 것으로 답해 광고만 닫히게 하고, 그 밖에는 게임의 appBack(열린 창 닫기)에 맡긴다.
+  sdk.on("pause", (e) => { if (e && e.reason === "ad") adOpen = true; });
+  sdk.on("resume", () => { if (adOpen) adQuietUntil = Date.now() + 800; adOpen = false; });
+  if (typeof sdk.onBackPressed === "function") sdk.onBackPressed(() => {
+    if (adOpen || adBusy || Date.now() < adQuietUntil) return true;
+    try { return window.appBack ? window.appBack() === true : false; } catch (e) { return false; }
+  });
   sdk.initializeAsync()
     .then((info) => {
       if (info && info.err) return; // 원스토어 앱 밖(일반 브라우저)
@@ -28,6 +34,9 @@ function startOnestore() {
 const AD_ID = "xHTYF-JVK8-5VTA-KFJN";
 const AD_GAP = 150000;
 window.onestoreAd = { atBreak() {} };
+let adOpen = false;
+let adBusy = false;
+let adQuietUntil = 0;
 function setupAds(sdk) {
   try { if (!sdk.ads || !sdk.ads.isSupported("interstitial")) return; } catch (e) { return; }
   let last = Date.now();
@@ -36,10 +45,13 @@ function setupAds(sdk) {
   window.onestoreAd.atBreak = () => {
     if (busy || Date.now() - last < AD_GAP) return;
     busy = true;
+    adBusy = true;
     sdk.ads.showInterstitialAsync({ placementId: AD_ID })
       .catch(() => {})
       .then(() => {
         busy = false;
+      adBusy = false;
+      adQuietUntil = Date.now() + 800;
         last = Date.now();
         try { sdk.ads.loadInterstitial({ placementId: AD_ID }); } catch (e) {}
       });

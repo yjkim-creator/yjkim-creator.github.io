@@ -14,8 +14,14 @@ import { createSDK } from "https://h5sdk.onestore.net/lib/v1.1.0/onestore-h5-sdk
 // 검사 화면이 듣기 시작한 뒤에 인사(hello)를 보내도록 페이지 로드 후 잠깐 기다립니다.
 function startOnestore() {
   const sdk = createSDK();
-  sdk.on("pause", () => {});
-  sdk.on("resume", () => {});
+  // 뒤로가기: 원스토어 앱은 게임이 '처리함(true)'이라고 답하지 않으면 게임을 끝낸다.
+  // 광고가 떠 있거나 막 닫힌 때는 처리한 것으로 답해 광고만 닫히게 하고, 그 밖에는 게임의 appBack(열린 창 닫기)에 맡긴다.
+  sdk.on("pause", (e) => { if (e && e.reason === "ad") adOpen = true; });
+  sdk.on("resume", () => { if (adOpen) adQuietUntil = Date.now() + 800; adOpen = false; });
+  if (typeof sdk.onBackPressed === "function") sdk.onBackPressed(() => {
+    if (adOpen || adBusy || Date.now() < adQuietUntil) return true;
+    try { return window.appBack ? window.appBack() === true : false; } catch (e) { return false; }
+  });
   sdk.initializeAsync()
     .then((info) => {
       if (info && info.err) return; // 원스토어 앱 밖(일반 브라우저)
@@ -28,6 +34,9 @@ function startOnestore() {
 const AD_ID = "xWV78-EBP9-FCVD-Y8QK";
 const AD_GAP = 150000;
 window.onestoreAd = { atBreak() {} };
+let adOpen = false;
+let adBusy = false;
+let adQuietUntil = 0;
 function setupAds(sdk) {
   try { if (!sdk.ads || !sdk.ads.isSupported("interstitial")) return; } catch (e) { return; }
   let last = Date.now();
@@ -36,10 +45,13 @@ function setupAds(sdk) {
   window.onestoreAd.atBreak = () => {
     if (busy || Date.now() - last < AD_GAP) return;
     busy = true;
+    adBusy = true;
     sdk.ads.showInterstitialAsync({ placementId: AD_ID })
       .catch(() => {})
       .then(() => {
         busy = false;
+      adBusy = false;
+      adQuietUntil = Date.now() + 800;
         last = Date.now();
         try { sdk.ads.loadInterstitial({ placementId: AD_ID }); } catch (e) {}
       });
@@ -55,9 +67,9 @@ else window.addEventListener("load", () => setTimeout(startOnestore, 800));
   <script src="lib/three.min.js"></script>
   <script src="lib/kit3d.js"></script>
   <script src="lib/sfx.js"></script>
-  <script src="src/logic.js?v=9"></script>
-  <script src="src/scene.js?v=9"></script>
-  <script src="src/app.js?v=9"></script>
+  <script src="src/logic.js?v=10"></script>
+  <script src="src/scene.js?v=10"></script>
+  <script src="src/app.js?v=10"></script>
 <script src="src/leaderboard.js"></script>
 <script>window.Rank && Rank.setup(Object.assign({"game": "tiertop", "title": "층층 베이커리 · 최고 높이", "unit": "층", "max": 100000, "theme": {"bg": "rgba(79,49,39,.5)", "panel": "#fffdf8", "text": "#4f3127", "mute": "#8a6152", "accent": "#e2627f", "accentText": "#ffffff", "line": "rgba(79,49,39,.12)", "font": "'Trebuchet MS','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',system-ui,sans-serif"}, "tab": {"ko": "최고 높이", "en": "Tallest cake", "ja": "最高の高さ"}}, { read: function () { return +(JSON.parse(localStorage.getItem('tiertop-save-v1')||'{}').best)||0; }, boards: [Object.assign({"id": "stage", "game": "tiertop-stage", "max": 9999999, "unit": "", "tab": {"ko": "최고 단계", "en": "Best stage", "ja": "最高ステージ"}, "title": {"ko": "층층 베이커리 · 최고 도달 단계", "en": "Tiertop Bakery · Best stage", "ja": "つみつみケーキ屋さん · 最高ステージ"}}, { read: function () { return (function(s){var st=s.stage||{};var b=+st.best||0;var n=0;(st.stars||[]).forEach(function(x){n+=Math.max(0,Math.min(3,+x||0));});return b>0?b*1000+Math.min(999,n):0;})(JSON.parse(localStorage.getItem('tiertop-save-v1')||'{}')); }, format: function (n) { return (function(s){return Rank.lang==='en'?'Stage '+s:Rank.lang==='ja'?s+'ステージ':s+'단계';})(Math.floor(n/1000)); } })] }));</script>
 </body>

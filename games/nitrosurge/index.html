@@ -113,8 +113,14 @@ import { createSDK } from "https://h5sdk.onestore.net/lib/v1.1.0/onestore-h5-sdk
 // 검사 화면이 듣기 시작한 뒤에 인사(hello)를 보내도록 페이지 로드 후 잠깐 기다립니다.
 function startOnestore() {
   const sdk = createSDK();
-  sdk.on("pause", () => {});
-  sdk.on("resume", () => {});
+  // 뒤로가기: 원스토어 앱은 게임이 '처리함(true)'이라고 답하지 않으면 게임을 끝낸다.
+  // 광고가 떠 있거나 막 닫힌 때는 처리한 것으로 답해 광고만 닫히게 하고, 그 밖에는 게임의 appBack(열린 창 닫기)에 맡긴다.
+  sdk.on("pause", (e) => { if (e && e.reason === "ad") adOpen = true; });
+  sdk.on("resume", () => { if (adOpen) adQuietUntil = Date.now() + 800; adOpen = false; });
+  if (typeof sdk.onBackPressed === "function") sdk.onBackPressed(() => {
+    if (adOpen || adBusy || Date.now() < adQuietUntil) return true;
+    try { return window.appBack ? window.appBack() === true : false; } catch (e) { return false; }
+  });
   sdk.initializeAsync()
     .then((info) => {
       if (info && info.err) return; // 원스토어 앱 밖(일반 브라우저)
@@ -127,6 +133,9 @@ function startOnestore() {
 const AD_ID = "x3TAN-TJYU-3KKH-KLV2";
 const AD_GAP = 150000;
 window.onestoreAd = { atBreak() {} };
+let adOpen = false;
+let adBusy = false;
+let adQuietUntil = 0;
 function setupAds(sdk) {
   try { if (!sdk.ads || !sdk.ads.isSupported("interstitial")) return; } catch (e) { return; }
   let last = Date.now();
@@ -135,10 +144,13 @@ function setupAds(sdk) {
   window.onestoreAd.atBreak = () => {
     if (busy || Date.now() - last < AD_GAP) return;
     busy = true;
+    adBusy = true;
     sdk.ads.showInterstitialAsync({ placementId: AD_ID })
       .catch(() => {})
       .then(() => {
         busy = false;
+      adBusy = false;
+      adQuietUntil = Date.now() + 800;
         last = Date.now();
         try { sdk.ads.loadInterstitial({ placementId: AD_ID }); } catch (e) {}
       });
@@ -265,6 +277,14 @@ const ZONES = [
     skyTop: '#160000', skyMid: '#5c0a00', skyBot: '#ff6a00', sunTop: '#fff2a8', sunBot: '#ff3b00',
     ground1: '#170403', ground2: '#220806', road1: '#1a0e0c', road2: '#201210', rumble1: '#ff7a00', rumble2: '#3a0d05',
     lane: '#ffd2a1', rail: '#ff5a00', fog: '#5a1400', m1: '#3d0b04', m2: '#140302', edge: '#ff7a1a' },
+  { name: 'OCEAN DRIVE', ko: '오션 드라이브', kind: 'mtn', sun: 1, stars: 0.4, aurora: 0,
+    skyTop: '#001a33', skyMid: '#004d73', skyBot: '#21c4d6', sunTop: '#fffbe0', sunBot: '#7af2ff',
+    ground1: '#021826', ground2: '#052436', road1: '#0d1a22', road2: '#11202a', rumble1: '#21c4d6', rumble2: '#06303f',
+    lane: '#c9f7ff', rail: '#29e0ff', fog: '#0a3f55', m1: '#0b3b56', m2: '#04192a', edge: '#4ff0ff' },
+  { name: 'GOLD RUSH', ko: '골드 러시', kind: 'city', sun: 1, stars: 0.3, aurora: 0,
+    skyTop: '#1a0f00', skyMid: '#5a3a00', skyBot: '#ffc23d', sunTop: '#fff7c2', sunBot: '#ffb000',
+    ground1: '#170c00', ground2: '#221300', road1: '#1a140c', road2: '#211a10', rumble1: '#ffc23d', rumble2: '#3a2600',
+    lane: '#ffe7a8', rail: '#ffcf4d', fog: '#5a3a00', m1: '#4a2f05', m2: '#1c1102', edge: '#ffd65c' },
 ];
 for (const z of ZONES) { z.C = {}; for (const k in z) if (typeof z[k] === 'string' && z[k][0] === '#') z.C[k] = hex(z[k]); }
 
@@ -685,19 +705,99 @@ const segAt = (z) => segments[Math.floor(z / SEG) % segments.length];
 const wrapHalf = (d) => { d = ((d % trackLength) + trackLength) % trackLength; return d > trackLength / 2 ? d - trackLength : d; };
 
 // ── 차량 ──
+// 예전에는 트랙에 120대를 미리 깔아 두었는데, 트랙 끝에 놓인 차가 출발선 바로 뒤가 되어
+// 카운트다운 동안 다가와 'GO!' 직후 부딪혔다. 이제는 앞쪽에 '패턴'을 차례로 만들고 지나간 차는 다시 쓴다.
+// 패턴: 흩어진 차, 좌우 지그재그, 두 줄 틈(두 차선을 막고 한 차선만 열림), 한 줄 벽(한 차선에 줄지은 차), 느린 차 구간.
 let cars = [];
+let posAbs = 0;          // 이번 판에 달린 거리(트랙을 돌아도 계속 는다)
+let spawnAt = 0;         // 다음 패턴을 놓을 자리(절대 거리)
+let cleanStreak = 0;     // 부딪히지 않고 지나간 패턴 연속 수
+const patStats = {};
+const SAFE_AHEAD = 24000;  // 첫 장애물은 이만큼 앞에 놓는다(그리기 거리 안이라 처음부터 멀리 보인다)
+const SPAWN_AHEAD = 30000; // 그리기 거리 안쪽 이만큼 앞까지 미리 채운다
+const START_SAFE = 3.5;    // 'GO!' 뒤 이 시간(초) 동안은 부딪혀도 다치지 않는다
+let safeT = 0;
+function unbucket(c) {
+  if (c.si >= 0) { const a = segments[c.si].cars; const k = a.indexOf(c); if (k >= 0) a.splice(k, 1); }
+  c.si = -1;
+}
+function carOn(x, zAbs, base, g) {
+  let c = cars.find((o) => !o.on);
+  if (!c) { if (cars.length >= 90) return; c = { si: -1 }; cars.push(c); }
+  const t = SPR.cars[Math.floor(R() * SPR.cars.length)];
+  Object.assign(c, { on: true, img: t.img, w: t.w, x, tx: x, abs: zAbs, z: ((zAbs % trackLength) + trackLength) % trackLength,
+    base: base * (t.w > 0.43 ? 0.92 : 1), prev: 0, hit: false, g, free: !g });
+  c.speed = c.base;
+  bucket(c);
+  if (g) g.n++;
+}
+// 구간(ZONE)이 오를수록 패턴 사이가 좁아지고 어려운 패턴이 늘어난다.
+const PATTERNS = ['scatter', 'zigzag', 'convoy', 'gate', 'slow'];
+function pickPattern(tr) {
+  const w = [3, 3, 2.5, tr >= 1 ? 2 + tr * 0.4 : 0, tr >= 2 ? 1.2 + tr * 0.2 : 0];
+  let r = R() * w.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < w.length; i++) { r -= w[i]; if (r <= 0) return PATTERNS[i]; }
+  return 'scatter';
+}
+function spawnPattern() {
+  const tr = Math.min(zoneIdx, 6);
+  const kind = pickPattern(tr);
+  patStats[kind] = (patStats[kind] || 0) + 1;
+  const g = kind === 'scatter' ? null : { kind, n: 0, ok: 0, done: 0, bad: false };
+  const base = MAXS * (kind === 'slow' ? 0.18 + R() * 0.05 : 0.3 + R() * 0.18);
+  const li = Math.floor(R() * 3);
+  let z = spawnAt, len = 0;
+  if (kind === 'scatter') {
+    const n = 2 + Math.floor(R() * 2);
+    for (let i = 0; i < n; i++) carOn(LANES[Math.floor(R() * 3)], z + i * 3400, MAXS * (0.28 + R() * 0.24), null);
+    len = (n - 1) * 3400;
+  } else if (kind === 'zigzag') {           // 좌·우 지그재그
+    const n = 3 + Math.min(3, tr >> 1), gap = Math.max(2200, 3400 - tr * 200), side = R() < 0.5 ? 0 : 2;
+    for (let i = 0; i < n; i++) carOn(LANES[i % 2 ? 2 - side : side], z + i * gap, base, g);
+    len = (n - 1) * gap;
+  } else if (kind === 'convoy') {            // 한 줄 벽: 한 차선에 줄지은 차
+    const n = 2 + Math.min(3, tr >> 1);
+    for (let i = 0; i < n; i++) carOn(LANES[li], z + i * 950, base, g);
+    if (tr >= 1) carOn(LANES[(li + 1 + Math.floor(R() * 2)) % 3], z + n * 950 + 1800, base, g);
+    len = n * 950 + 1800;
+  } else if (kind === 'gate') {              // 두 줄 틈: 두 차선을 막고 한 차선만 열어 둔다(다음 문은 옆 차선이 열림)
+    const n = 2 + Math.min(1, tr >> 1);
+    let open = li;
+    for (let i = 0; i < n; i++) {
+      for (let k = 0; k < 3; k++) if (k !== open) carOn(LANES[k], z + i * 4300, base, g);
+      open = open === 1 ? (R() < 0.5 ? 0 : 2) : 1;
+    }
+    len = (n - 1) * 4300;
+  } else {                                   // 느린 차 구간: 확 느린 차들이 섞여 다가오는 속도가 달라진다
+    const n = 3 + Math.min(1, tr >> 2);
+    for (let i = 0; i < n; i++) carOn(LANES[(li + i * 2) % 3], z + i * 3200, base * (0.9 + R() * 0.2), g);
+    len = (n - 1) * 3200;
+  }
+  // 첫 구간은 예전(트랙 7천 단위마다 한 대쯤)과 비슷하게 띄엄띄엄, 구간이 오를수록 촘촘해진다.
+  spawnAt = z + len + Math.max(3200, 10000 - tr * 1100) + R() * 2000;
+}
+function fillAhead() {
+  const head = posAbs + playerZ;
+  let n = 0;
+  while (spawnAt < head + SPAWN_AHEAD && n++ < 6) spawnPattern();
+}
 function placeCars() {
   for (const s of segments) s.cars.length = 0;
-  cars = [];
-  const N = 120;
-  for (let i = 0; i < N; i++) {
-    const t = SPR.cars[Math.floor(R() * SPR.cars.length)];
-    const lane = LANES[Math.floor(R() * 3)];
-    const z = (7000 + i * (trackLength - 9000) / N + R() * 1500) % trackLength;
-    const base = MAXS * (0.28 + R() * 0.26) * (t.w > 0.43 ? 0.85 : 1);
-    const car = { img: t.img, w: t.w, x: lane, tx: lane, z, base, speed: base, prev: 0, hit: false, si: -1 };
-    cars.push(car); bucket(car);
-  }
+  for (const c of cars) { c.on = false; c.si = -1; }
+  posAbs = 0;
+  spawnAt = playerZ + SAFE_AHEAD;
+  cleanStreak = 0;
+  fillAhead();
+}
+// 패턴을 하나도 부딪히지 않고 다 지나가면 작은 보너스(연속일수록 조금 더). 재촉하는 알림이나 시간 제한은 없다.
+function patternDone(g) {
+  if (state !== 'play') return;
+  if (g.bad || g.ok < g.n) { cleanStreak = 0; return; }
+  cleanStreak++;
+  const pts = 120 * Math.min(cleanStreak, 10);
+  score += pts;
+  popup(cleanStreak > 1 ? 'CLEAN x' + cleanStreak : 'CLEAN PASS', '+' + pts, '#7affd0', HW, carBaseY - halfRoadPx * 0.62, false);
+  buzz(22);
 }
 function bucket(car) {
   const si = Math.floor(car.z / SEG) % segments.length;
@@ -908,6 +1008,7 @@ let state = 'title';
 let T = 0, position = 0, speed = 0, playerX = 0, playerY = 0, steer = 0, maxSpeed = MAXS;
 let hearts = 3, nitro = 0.5, boosting = false, boostVis = 0, score = 0, meters = 0;
 let combo = 0, comboT = 0, maxCombo = 0, nearCount = 0, topSpeed = 0, invuln = 0, lap = 0;
+let testAuto = false;
 let shake = 0, flash = 0, skyOffset = 0, cdT = 0, goT = 0, dyingT = 0, zoneIdx = 0, autoX = 0, lastCd = 0;
 let particles = [], popups = [];
 const stars = Array.from({ length: 130 }, () => ({ x: Math.random(), y: Math.random() * 0.92, s: 0.6 + Math.random() * 1.6, p: Math.random() * 6 }));
@@ -915,7 +1016,7 @@ const stars = Array.from({ length: 130 }, () => ({ x: Math.random(), y: Math.ran
 function resetRun() {
   position = 0; speed = 0; playerX = 0; steer = 0; hearts = 3; nitro = 0.5; boosting = false; boostVis = 0;
   score = 0; meters = 0; combo = 0; comboT = 0; maxCombo = 0; nearCount = 0; topSpeed = 0; invuln = 0;
-  lap = 0; zoneIdx = 0; maxSpeed = MAXS; particles = []; popups = []; flash = 0; shake = 0;
+  lap = 0; zoneIdx = 0; maxSpeed = MAXS; particles = []; popups = []; flash = 0; shake = 0; safeT = 0;
   for (const s of segments) for (const p of s.pickups) p.lap = -1;
   placeCars();
   updateHearts(); // 새 판 시작 때 하트 표시를 3개로 다시 그린다
@@ -1050,7 +1151,7 @@ function autopilot() {
   let best = autoX, bestD = -1;
   for (const lx of LANES) {
     let d = 6000;
-    for (const c of cars) if (Math.abs(c.x - lx) < 0.42) { const dz = wrapHalf(c.z - pz); if (dz > -300 && dz < d) d = dz; }
+    for (const c of cars) if (c.on && Math.abs(c.x - lx) < 0.42) { const dz = wrapHalf(c.z - pz); if (dz > -300 && dz < d) d = dz; }
     if (Math.abs(lx - autoX) < 0.1) d += 900;
     if (d > bestD) { bestD = d; best = lx; }
   }
@@ -1063,7 +1164,9 @@ function crash(car) {
   car.hit = true; car.speed = car.base * 1.2;
   boosting = false;
   burst(HW, carBaseY - halfRoadPx * 0.2, 36, ['#fff', '#ffe066', '#ff7a1a', '#ff2bd6'], 420, 4, 0.8);
-  Snd.sfx('crash'); buzz(hearts > 0 ? 160 : 450);
+  Snd.sfx('crash'); // 실패에는 진동을 주지 않는다
+  cleanStreak = 0;
+  if (car.g) car.g.bad = true;
   updateHearts();
   if (hearts <= 0) { state = 'dying'; dyingT = 1.6; }
 }
@@ -1087,13 +1190,13 @@ function update(dt, realDt) {
     cdT -= realDt;
     const n = Math.ceil(cdT);
     if (n !== lastCd && n > 0) { lastCd = n; showCd(String(n), false); Snd.sfx('beep'); }
-    if (cdT <= 0) { state = 'play'; showCd('GO!', true); Snd.sfx('go'); buzz(60); }
+    if (cdT <= 0) { state = 'play'; safeT = START_SAFE; showCd('GO!', true); Snd.sfx('go'); }
   }
   if (state === 'dying') { dyingT -= realDt; if (dyingT <= 0) { gameOver(); return; } }
 
   maxSpeed = MAXS * (1 + Math.min(0.5, zoneIdx * 0.07));
   const want = playing && nitroHeld() && nitro > 0.02;
-  if (want && !boosting) { Snd.sfx('boost'); buzz(25); }
+  if (want && !boosting) Snd.sfx('boost');
   boosting = want;
   if (boosting) nitro = Math.max(0, nitro - dt * 0.26);
   boostVis = approach(boostVis, boosting ? 1 : 0, dt * (boosting ? 4 : 2));
@@ -1107,11 +1210,12 @@ function update(dt, realDt) {
   speed = approach(speed, target, acc * dt);
   const prevPos = position;
   position = (position + speed * dt) % trackLength;
+  posAbs += speed * dt;
   if (position < prevPos) lap++;
   const pct = speed / maxSpeed;
   const pSeg = segAt(position + playerZ);
 
-  const dir = auto ? autopilot() : (playing ? inputDir() : 0);
+  const dir = auto || (testAuto && playing) ? autopilot() : (playing ? inputDir() : 0);
   steer = approach(steer, dir, dt * (auto ? 3 : 7));
   playerX += steer * dt * 2.5 * Math.min(1, pct * 1.5 + 0.1);
   if (!auto) playerX -= dt * pct * pct * pSeg.curve * 0.21;
@@ -1120,34 +1224,45 @@ function update(dt, realDt) {
   if (offroad && speed > 1000) shake = Math.max(shake, 0.12);
 
   // 차량
+  const frozen = state === 'countdown';
   for (const c of cars) {
+    if (!c.on || frozen) continue;
     let sp = c.hit ? c.speed : c.base;
-    for (const o of cars) if (o !== c && Math.abs(o.x - c.x) < 0.4) { const d = wrapHalf(o.z - c.z); if (d > 0 && d < 700) sp = Math.min(sp, o.speed * 0.98); }
+    for (const o of cars) if (o.on && o !== c && Math.abs(o.x - c.x) < 0.4) { const d = wrapHalf(o.z - c.z); if (d > 0 && d < 700) sp = Math.min(sp, o.speed * 0.98); }
     c.speed = approach(c.speed, sp, MAXS * 0.3 * dt);
-    if (Math.random() < dt * 0.07) {
+    if (c.free && Math.random() < dt * 0.07) {
       const dzp = wrapHalf(c.z - (position + playerZ));
       if (dzp > 3000 || dzp < -1000) {
         const li = LANES.indexOf(c.tx), nl = LANES[clamp(li + (Math.random() < 0.5 ? -1 : 1), 0, 2)];
-        if (nl !== c.tx && !cars.some((o) => o !== c && Math.abs(o.x - nl) < 0.4 && Math.abs(wrapHalf(o.z - c.z)) < 1000)) c.tx = nl;
+        if (nl !== c.tx && !cars.some((o) => o.on && o !== c && Math.abs(o.x - nl) < 0.4 && Math.abs(wrapHalf(o.z - c.z)) < 1000)) c.tx = nl;
       }
     }
     c.x = approach(c.x, c.tx, dt * 0.6);
-    c.z = (c.z + c.speed * dt) % trackLength;
+    c.abs += c.speed * dt;
+    c.z = ((c.abs % trackLength) + trackLength) % trackLength;
     bucket(c);
   }
 
   // 충돌·니어 미스
   const pz = (position + playerZ) % trackLength;
   if (invuln > 0) invuln -= dt;
+  if (safeT > 0 && playing) safeT -= dt;
+  const headAbs = posAbs + playerZ;
   for (const c of cars) {
+    if (!c.on) continue;
+    if (c.abs < headAbs - 3500) { // 뒤로 지나간 차는 거두어 다시 쓴다
+      c.on = false; unbucket(c);
+      if (c.g) { if (!c.hit) c.g.ok++; c.g.done++; if (c.g.done === c.g.n) patternDone(c.g); }
+      continue;
+    }
     const dz = wrapHalf(c.z - pz), dx = Math.abs(c.x - playerX);
     if (playing) {
-      if (invuln <= 0 && !c.hit && Math.abs(dz) < 230 && dx < (c.w + 0.44) * 0.43) crash(c);
+      if (invuln <= 0 && safeT <= 0 && !c.hit && Math.abs(dz) < 230 && dx < (c.w + 0.44) * 0.43) crash(c);
       else if (c.prev > 0 && dz <= 0 && c.prev < 1500 && dx < 0.86 && !c.hit && invuln <= 0) nearMiss(dx);
     }
-    if (Math.abs(dz) > 4000) c.hit = false;
     c.prev = dz;
   }
+  fillAhead();
   // 아이템
   if (playing) for (let k = -1; k <= 1; k++) {
     const s = segments[(pSeg.index + k + segments.length) % segments.length];
@@ -1524,7 +1639,7 @@ window.addEventListener('resize', resize);
 updateHearts();
 resetRun(); speed = MAXS * 0.7;
 $('bestT').textContent = store.best.toLocaleString();
-window.__ns = { get state() { return state; }, get speed() { return speed; }, get score() { return score; }, get frames() { return frames; }, get timer() { return useTimer; }, perf, get W() { return W; }, get DPR() { return DPR; }, get quality() { return quality; }, get soft() { return soft; }, SPR, Snd, start: startGame };
+window.__ns = { get ahead() { const pz = (position + playerZ) % trackLength; let m = 1e9; for (const c of cars) if (c.on) { const d = wrapHalf(c.z - pz); if (d > -400 && d < m) m = d; } return m; }, get hearts() { return hearts; }, get meters() { return meters; }, get zone() { return zoneIdx; }, get clean() { return cleanStreak; }, get active() { return cars.filter((c) => c.on).length; }, get near() { return nearCount; }, patStats, auto(on) { testAuto = !!on; }, god() { safeT = 1e9; }, get safe() { return safeT; }, get state() { return state; }, get speed() { return speed; }, get score() { return score; }, get frames() { return frames; }, get timer() { return useTimer; }, perf, get W() { return W; }, get DPR() { return DPR; }, get quality() { return quality; }, get soft() { return soft; }, SPR, Snd, start: startGame };
 loop();
 })();
 </script>
