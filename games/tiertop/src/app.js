@@ -9,14 +9,14 @@
     title: '층층 베이커리', order: (n) => `${n}의 주문`, layers: (n) => `${n}층`, start: '굽기 시작', resume: '이어서 쌓기', again: '다시 굽기',
     book: '맛 도감', close: '닫기', best: '최고', stamps: '단골 도장', today: '오늘 최고', tapHint: '화면을 톡 — 층이 떨어져요',
     perfect: '딱 맞음!', grew: '층이 넓어졌어요', delivered: '주문 완성!', keepGoing: '더 쌓아 기록에 도전',
-    fallen: '케이크가 기울었어요', served: '케이크를 건넸어요', newBest: '새 기록', unlocked: (n) => `새 맛: ${n}`,
+    fallen: '케이크가 기울었어요', served: '케이크를 건넸어요', newBest: '새 기록', unlocked: (n) => `새 맛: ${n}`, toBest: (n) => `최고 기록까지 ${n}층`, toStar: (n, s) => `딱 맞음 ${n}번 더면 ★${s}`,
     lockedNeed: (n) => `${n}층 더 쌓으면`, total: (n) => `지금까지 ${n}층`, flavorsOf: '이번 주문의 맛', target: '목표',
     sound: '소리', menu: '처음으로', next: (n, f) => `다음 맛 ${f}까지 ${n}층`, done: '오늘 주문 완료',
   } : {
     title: 'Tiertop Bakery', order: (n) => `${n}'s order`, layers: (n) => `${n} tiers`, start: 'Start baking', resume: 'Keep stacking', again: 'Bake again',
     book: 'Flavor book', close: 'Close', best: 'Best', stamps: 'Stamps', today: "Today's best", tapHint: 'Tap anywhere to drop the tier',
     perfect: 'Perfect!', grew: 'Tier grew back', delivered: 'Order complete!', keepGoing: 'Keep stacking for a record',
-    fallen: 'The cake tipped over', served: 'Cake delivered', newBest: 'New best', unlocked: (n) => `New flavor: ${n}`,
+    fallen: 'The cake tipped over', served: 'Cake delivered', newBest: 'New best', unlocked: (n) => `New flavor: ${n}`, toBest: (n) => `${n} tier${n === 1 ? '' : 's'} short of your best`, toStar: (n, s) => `${n} more perfect drop${n === 1 ? '' : 's'} for ★${s}`,
     lockedNeed: (n) => `${n} more tiers`, total: (n) => `${n} tiers so far`, flavorsOf: 'Flavors in this order', target: 'Goal',
     sound: 'Sound', menu: 'Menu', next: (n, f) => `${n} tiers to ${f}`, done: "Today's order done",
   };
@@ -256,6 +256,15 @@
       return `<span class="sw" style="--c:${f.color};--k:${f.cream}"><i></i>${fname(f)}</span>`;
     }).join('');
   }
+  // 결과 영수증 한 줄: 별 하나 더 받는 방법, 아니면 최고 기록까지 남은 층.
+  function goalLine(info, h) {
+    const ns = Logic.perfectsToNextStar(info.run);
+    const parts = [];
+    if (!info.newBest && info.save.best > h) parts.push(T.toBest(info.save.best - h));
+    if (ns) parts.push(T.toStar(ns.need, ns.next));
+    return parts.length ? `<p class="goal">${parts.join(' · ')}</p>` : '';
+  }
+
   function nextLine() {
     const nx = Logic.nextUnlock(save.totalLayers);
     return nx ? T.next(nx.need - save.totalLayers, fname(nx)) : T.total(save.totalLayers);
@@ -298,6 +307,7 @@
         <div class="stars">${[1, 2, 3].map((n) => `<i class="${n <= st ? 'on' : ''}"></i>`).join('')}</div>
         <dl><div><dt>${T.perfect}</dt><dd>${info.run.perfects}</dd></div><div><dt>${T.best}</dt><dd>${info.save.best}</dd></div><div><dt>${T.stamps}</dt><dd>${info.save.stamps}</dd></div></dl>
         ${info.unlocked.map((f) => `<p class="unlock"><span class="sw" style="--c:${f.color};--k:${f.cream}"><i></i></span>${T.unlocked(fname(f))}</p>`).join('')}
+        ${goalLine(info, h)}
         <p class="next">${nextLine()}</p>
       </div>
       <button class="go" id="againBtn">${T.again}</button>

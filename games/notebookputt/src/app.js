@@ -18,6 +18,8 @@
     shots: (n) => `${n}타`, underPar: (n) => `파 이하 ${n}홀`, legend: ['파보다 적게', '파', '파보다 많이'], floorN: (n) => `${n}층`, pickup: '공을 집어 들었어요', sound: '소리', months: (y, m) => `${y}년 ${m}월`,
     days: ['일', '월', '화', '수', '목', '금', '토'], prev: '이전 달', nextMonth: '다음 달',
     names: { ace: '홀인원!', eagle: '이글!', birdie: '버디!', par: '파', bogey: '보기', double: '더블 보기', over: '오버', pickup: '다음엔 꼭' },
+    milestone: (n) => `🎉 ${n}층 돌파!`, toMilestone: (next, left) => `다음 이정표 ${next}층까지 ${left}층`,
+    newBestRound: (prev) => `🎉 새 최고 라운드! (지난 최고 ${prev})`, sameBest: '지난 최고 기록과 같아요', toBest: (prev, n) => `지난 최고 ${prev}까지 ${n}타`,
   } : {
     daily: "Today's 6", ladder: 'Ladder', hole: 'Hole', par: 'Par', strokes: 'Strokes', floor: 'Floor',
     hint: 'Drag anywhere to aim, release to putt', water: 'Splash! +1 penalty, replay from your spot',
@@ -28,6 +30,8 @@
     months: (y, m) => new Date(y, m - 1, 1).toLocaleDateString('en', { month: 'long', year: 'numeric' }),
     days: ['S', 'M', 'T', 'W', 'T', 'F', 'S'], prev: 'Previous month', nextMonth: 'Next month',
     names: { ace: 'Hole in one!', eagle: 'Eagle!', birdie: 'Birdie!', par: 'Par', bogey: 'Bogey', double: 'Double bogey', over: 'Over par', pickup: 'Next time' },
+    milestone: (n) => `🎉 Floor ${n} cleared!`, toMilestone: (next, left) => `${left} more to floor ${next}`,
+    newBestRound: (prev) => `🎉 New best round! (was ${prev})`, sameBest: 'Tied your best round', toBest: (prev, n) => `${n} off your best (${prev})`,
   };
   document.documentElement.lang = ko ? 'ko' : 'en';
   // 스토어 스크린샷은 412px 폭 폰 화면으로 찍힌다. 창 없는 브라우저는 더 넓게 열리므로 그 폭에 맞춘다.
@@ -565,7 +569,13 @@
     const name = L.scoreName(out.strokes, out.par);
     const sub = out.pickedUp ? TEXT.pickup : `${TEXT.shots(out.strokes)} · ${TEXT.par} ${out.par}`;
     const label = state.mode === 'ladder' ? TEXT.nextFloor : out.roundDone ? TEXT.result : TEXT.next;
-    openSheet('hole', `${stamp(name, sub)}<button class="primary" id="goNext">${label}</button>`);
+    let goal = '';
+    if (state.mode === 'ladder') {
+      const g = L.ladderGoal(state.ladder.level - 1);
+      goal = `<p class="note goal${g.hit ? ' hit' : ''}">${g.hit ? TEXT.milestone(state.ladder.level - 1) : TEXT.toMilestone(g.next, g.left)}</p>`;
+      if (g.hit && !out.ace) setTimeout(sfx.ace, 120);
+    }
+    openSheet('hole', `${stamp(name, sub)}${goal}<button class="primary" id="goNext">${label}</button>`);
     $('goNext').addEventListener('click', advance);
   }
 
@@ -607,10 +617,13 @@
     const d = state.daily;
     const rec = state.history[d.date];
     const toPar = rec ? rec.strokes - rec.par : 0;
+    const prev = rec ? L.bestBefore(state.history, d.date) : null;
+    const vsBest = prev === null ? '' : toPar < prev ? TEXT.newBestRound(toParText(prev)) : toPar === prev ? TEXT.sameBest : TEXT.toBest(toParText(prev), toPar - prev);
     openSheet('round', `
       <p class="eyebrow">${d.date}</p>
       <h2>${TEXT.roundDone}</h2>
       <div class="big-score">${toParText(toPar)}<small>${rec ? TEXT.shots(rec.strokes) : ''}</small></div>
+      ${vsBest ? `<p class="note goal${prev !== null && toPar < prev ? ' hit' : ''}">${vsBest}</p>` : ''}
       ${scorecard(d.date, d.scores)}
       <p class="note">${TEXT.tomorrow} · ${TEXT.streakDays} ${L.streak(state.history, d.date)}</p>
       <button class="primary" id="goLadder">${TEXT.goLadder}</button>

@@ -149,6 +149,9 @@ body { position: relative; }
 .big-score { font-family: var(--hand); font-size: 54px; font-weight: 800; color: var(--red); line-height: 1; margin: 6px 0 10px; }
 .big-score small { font-family: var(--ui); font-size: 15px; color: var(--ink-soft); margin-left: 10px; font-weight: 700; }
 .note { font-size: 13px; color: var(--ink-soft); font-weight: 600; margin: 10px 0 4px; }
+.note.goal { text-align: center; font-size: 15px; color: var(--ink); margin: -6px 0 2px; }
+.note.goal.hit { color: var(--red); font-weight: 800; animation: goalPop 0.4s cubic-bezier(.3,1.8,.5,1); }
+@keyframes goalPop { from { transform: scale(1.4); opacity: 0; } to { transform: none; opacity: 1; } }
 .scorecard { width: 100%; border-collapse: collapse; background: #fff; font-size: 13px; table-layout: fixed; }
 .scorecard th, .scorecard td { border: 1.2px solid var(--ink); text-align: center; height: 32px; padding: 0; }
 .scorecard th:first-child { width: 22%; font-size: 11px; }

@@ -143,6 +143,11 @@
     return 1;
   }
 
+  // 별 3개를 받으려면 줄여야 하는 회전 수(이미 3개면 0).
+  function movesToThree(board) {
+    return Math.max(0, (board.moves | 0) - (board.par | 0));
+  }
+
   function rotate(board, i) {
     if (board.done || i < 0 || i >= board.cur.length || i === board.src) return board;
     const cur = board.cur.slice();
@@ -295,6 +300,7 @@
   }
 
   const logic = {
+    movesToThree,
     N, E, S, W, DIRS, OPP, MAX_W, MAX_H, DAILY_SIZES,
     turn, turnBy, turnsTo, bits, hashText, rng, neighbour,
     makeBoard, isLantern, litCells, looseEnds, isSolved, starsFor, rotate, restart,

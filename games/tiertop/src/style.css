@@ -74,6 +74,7 @@ body.shot .pop { animation: none; }
 .receipt dt { font-size: 10px; font-weight: 700; color: var(--cocoa-soft); }
 .receipt dd { margin: 0; font-size: 20px; font-weight: 900; }
 .receipt .next { margin: 8px 0 0; font-size: 11px; text-align: center; color: var(--cocoa-soft); font-weight: 700; }
+.receipt .goal { margin: 8px 0 0; font-size: 13px; text-align: center; color: var(--cocoa); font-weight: 800; }
 .stars { display: flex; gap: 6px; margin: -2px 0 2px; }
 .stars i { width: 26px; height: 26px; background: #eadbd2; clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
 .stars i.on { background: var(--butter); }

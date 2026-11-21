@@ -29,6 +29,9 @@ button { font-family: inherit; color: inherit; cursor: pointer; }
 .board small { font-size: 12px; font-weight: 800; letter-spacing: .12em; opacity: .8; }
 .board b { font-size: 30px; line-height: 1; font-weight: 900; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
 .board em { font-style: normal; font-size: 12px; font-weight: 800; color: var(--coral-ink); margin-top: 2px; }
+.vs-best { margin: 0 0 10px; text-align: left; font-size: 16px; font-weight: 800; color: var(--ink); }
+.vs-best.new { color: var(--coral-ink); animation: bestPop .45s cubic-bezier(.3,1.8,.5,1); }
+@keyframes bestPop { from { transform: scale(1.35); opacity: 0; } to { transform: none; opacity: 1; } }
 .tools { justify-self: end; display: flex; gap: 6px; }
 .round { width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 2px solid var(--ink); border-radius: 50%; background: var(--paper); box-shadow: 0 3px 0 var(--ink); }
 .round:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }

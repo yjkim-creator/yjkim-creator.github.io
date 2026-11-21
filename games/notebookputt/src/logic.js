@@ -520,6 +520,25 @@
     return { state: s, holeOut };
   }
 
+  // 계단 코스 이정표: 10층마다. 방금 깬 층이 이정표면 hit, 아니면 다음 이정표와 남은 층.
+  const LADDER_STEP = 10;
+  function ladderGoal(cleared) {
+    const n = Math.max(0, Math.floor(cleared));
+    const next = (Math.floor(n / LADDER_STEP) + 1) * LADDER_STEP;
+    return { hit: n > 0 && n % LADDER_STEP === 0, next, left: next - n };
+  }
+
+  // 오늘을 뺀 지난 라운드 중 가장 좋은 (타수 - 파). 없으면 null.
+  function bestBefore(history, date) {
+    let best = null;
+    for (const [key, rec] of Object.entries(history || {})) {
+      if (key === date || !rec) continue;
+      const tp = rec.strokes - rec.par;
+      if (Number.isFinite(tp) && (best === null || tp < best)) best = tp;
+    }
+    return best;
+  }
+
   // 오늘이나 어제까지 끊기지 않고 이어진 라운드 날 수.
   function streak(history, today) {
     const d = new Date(`${today}T12:00:00`);
@@ -544,7 +563,7 @@
 
   const logic = {
     W, H, TILE, BALL_R, CUP_R, BUMPER_R, MAX_SPEED, STROKE_CAP, HOLES_PER_DAY,
-    hashString, rng, generateHole, dailyHole, ladderHole, tileAt, tileOf,
+    hashString, rng, generateHole, dailyHole, ladderHole, tileAt, tileOf, ladderGoal, bestBefore, LADDER_STEP,
     newBall, launch, speedFor, step, simulate,
     distanceField, clearLine, powerFor, botShot, playHoleWithBot,
     dateKey, newState, sanitize, rollDay, currentHole, roundPar, applyShot, streak, scoreName,

@@ -13,6 +13,7 @@
       daily: '오늘의 사건', file: (n) => `사건 파일 ${n}`, tie: '실 묶기', clear: '풀기', strands: '남은 실',
       close: '하나만 빼면 맞아요', wrong: '공통점이 없어요', repeat: '이미 이어 본 조합이에요', need: '카드 넷을 고르세요',
       solved: '단서 확보!', hint: '돋보기', hintUsed: '돋보기는 사건마다 한 번', shuffle: '섞기',
+      newFound: (n, a, b) => `📓 수첩에 새 공통점 ${n}개 · ${a} / ${b}`, stampRule: '실을 끊지 않고 힌트 없이 풀면 도장 3개',
       win: '사건 해결', lose: '실이 다 끊겼어요', stampsLabel: '도장', mistakes: (n) => `끊은 실 ${n}가닥`,
       next: (n) => `사건 파일 ${n} 열기`, retry: '다시 풀기', notebook: '공통점 수첩', drawer: '사건함',
       found: (a, b) => `밝힌 공통점 ${a} / ${b}`, locked: '아직 못 밝힘', todayDone: (s) => `오늘 도장 ${s}개`, todayOpen: '아직 안 풀었어요',
@@ -24,6 +25,7 @@
       daily: "Today's Case", file: (n) => `Case File ${n}`, tie: 'Tie', clear: 'Clear', strands: 'String left',
       close: 'One away!', wrong: 'No connection', repeat: 'Already tried that', need: 'Pick four cards',
       solved: 'Clue found!', hint: 'Lens', hintUsed: 'One lens per case', shuffle: 'Shuffle',
+      newFound: (n, a, b) => `📓 ${n} new link${n === 1 ? '' : 's'} in your notebook · ${a} / ${b}`, stampRule: 'Solve with no snapped strings and no hints for 3 stamps',
       win: 'Case closed', lose: 'Out of string', stampsLabel: 'Stamps', mistakes: (n) => `${n} string${n === 1 ? '' : 's'} snapped`,
       next: (n) => `Open Case File ${n}`, retry: 'Try again', notebook: 'Clue Notebook', drawer: 'Case Drawer',
       found: (a, b) => `Links found ${a} / ${b}`, locked: 'Not found yet', todayDone: (s) => `Today: ${s} stamp${s === 1 ? '' : 's'}`, todayOpen: 'Not solved yet',
@@ -311,6 +313,8 @@
       }
       card.append(row);
       card.append(el('p', 'sheet-note', T.mistakes(run.mistakes)));
+      if (won && got < 3) card.append(el('p', 'sheet-note goal', T.stampRule));
+      if (run.newFound > 0) card.append(el('p', 'sheet-new', T.newFound(run.newFound, Logic.foundCount(state, LANG), Logic.totalTopics(LANG))));
       const list = el('ol', 'answer-list');
       run.groups.forEach((g, i) => {
         const li = el('li');
@@ -462,8 +466,9 @@
   function finishRun() {
     if (state.run.recorded) return;
     const run = state.run;
+    const foundBefore = Logic.foundCount(state, LANG);
     state = Logic.finish(state, run); // 시연 중에는 따로 만든 상태라 저장되지 않는다.
-    state.run = { ...run, recorded: true };
+    state.run = { ...run, recorded: true, newFound: Math.max(0, Logic.foundCount(state, LANG) - foundBefore) };
     save();
     setTimeout(() => {
       Sfx.play(run.done === 'win' ? 'win' : 'lose');

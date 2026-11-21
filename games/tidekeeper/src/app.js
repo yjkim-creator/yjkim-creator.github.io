@@ -20,7 +20,7 @@
     hintFirst: '먼저 물을 저어 플랑크톤 10을 모아 보세요.',
     tide: (sp) => `오늘의 물때 · ${sp} ×2`,
     task: { tap: '물 150번 젓기', plant: '생물 4번 심기', upgrade: '15번 키우기' },
-    taskDone: '오늘 과제 완료 · 진주 +1',
+    taskDone: '오늘 과제 완료 · 진주 +1', milestone: (x) => `🎉 초당 ${x} 돌파!`,
     emptyRock: '빈 바위', chooseSpecies: '심을 생물을 고르세요',
     locked: (sp) => `${sp}을(를) 먼저 심기`, likes: '좋아하는 이웃', lv: '단계',
     likedOn: (sp) => `옆에 ${sp}이(가) 있어 1.5배`, likedOff: (sp) => `${sp} 옆에 두면 1.5배`,
@@ -49,7 +49,7 @@
     hintFirst: 'Stir the water to gather 10 plankton first.',
     tide: (sp) => `Today's tide · ${sp} ×2`,
     task: { tap: 'Stir 150 times', plant: 'Plant 4 times', upgrade: 'Grow 15 times' },
-    taskDone: 'Daily task done · +1 pearl',
+    taskDone: 'Daily task done · +1 pearl', milestone: (x) => `🎉 ${x} per second!`,
     emptyRock: 'Empty rock', chooseSpecies: 'Choose what to plant',
     locked: (sp) => `Plant ${sp} first`, likes: 'Likes', lv: 'Lv',
     likedOn: (sp) => `Next to ${sp} · ×1.5`, likedOff: (sp) => `×1.5 next to ${sp}`,
@@ -345,6 +345,10 @@
     if (result.daily) {
       showToast(T.taskDone, 'pearl');
       setTimeout(sfx.pearl, 360);
+    }
+    if (result.milestone && !(result.visitors && result.visitors.length) && !result.daily) {
+      showToast(T.milestone(fmt(10 ** result.milestone)), 'pearl');
+      setTimeout(sfx.pearl, 200);
     }
     save();
     return true;
@@ -660,6 +664,8 @@
       panel.append(head);
       panel.append(el('p', 'welcome-num', `+${fmt(ui.welcome.gained)}`));
       panel.append(el('p', 'sea-text', T.welcomeText(fmt(ui.welcome.gained), T.hours(Math.round(ui.welcome.elapsed / 60000)))));
+      const nv = Logic.VISITORS.find((v) => !state.visitors.includes(v.id));
+      if (nv) panel.append(el('p', 'sea-text welcome-next', T.nextVisitor(T.visitors[nv.id][1])));
       const ok = el('button', 'btn primary wide', T.ok);
       ok.addEventListener('click', () => { closeOverlay(); sfx.plant(); });
       panel.append(ok);

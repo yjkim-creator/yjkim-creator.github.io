@@ -57,6 +57,10 @@ body.shot { width: 412px; overflow: hidden; }
 .score-box { text-align: right; line-height: 1.05; }
 .score-box small { display: block; font-size: 10px; color: var(--mute); letter-spacing: .08em; text-transform: uppercase; }
 .score-box b { font-size: 24px; font-variant-numeric: tabular-nums; color: var(--gold); }
+.vs-best { margin: 2px 0 8px; text-align: center; font-size: 15px; font-weight: 800; color: var(--ink); }
+.vs-best.new { color: var(--gold); animation: bestPop .45s cubic-bezier(.3,1.8,.5,1); }
+@keyframes bestPop { from { transform: scale(1.35); opacity: 0; } to { transform: none; opacity: 1; } }
+.codex-line { opacity: .9; }
 
 /* 판 */
 .board-col { width: var(--board-w); flex: none; display: flex; flex-direction: column; }

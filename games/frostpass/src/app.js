@@ -27,6 +27,7 @@
       again: '다시 도전', newPractice: '새 연습 판', toDaily: '오늘의 고개로', toPractice: '연습 판 하기',
       streak: (n) => `${n}일 연속으로 고개에 올랐어요`, todayBest: (n) => `오늘 최고 ${n}점`,
       bestPractice: (n) => `연습 최고 ${n}점`,
+      newBest: (p) => `🎉 새 기록! (지난 최고 ${p}점)`, tieBest: '지난 최고 기록과 같아요', gapBest: (n) => `최고 기록까지 ${n}점`,
       menu: '메뉴', resume: '이어 하기', codex: '도감', records: '기록', soundOn: '소리 켜짐', soundOff: '소리 꺼짐', how: '놀이 방법', close: '닫기',
       enemies: '눈 괴물', cards: '카드', unseen: '아직 못 만남', inDeck: '모은 카드', fromDraft: '보상에서 만날 수 있음',
       recTitle: '기록', last28: '최근 4주 오늘의 고개', wins: '이긴 판', runs: '한 판 수', totalMelt: '녹인 눈덩이',
@@ -53,6 +54,7 @@
       again: 'Try again', newPractice: 'New practice', toDaily: "Today's Pass", toPractice: 'Play practice',
       streak: (n) => `${n}-day climb streak`, todayBest: (n) => `Today's best ${n}`,
       bestPractice: (n) => `Practice best ${n}`,
+      newBest: (p) => `🎉 New record! (was ${p})`, tieBest: 'Tied your record', gapBest: (n) => `${n} short of your record`,
       menu: 'Menu', resume: 'Continue', codex: 'Field guide', records: 'Records', soundOn: 'Sound on', soundOff: 'Sound off', how: 'How to play', close: 'Close',
       enemies: 'Snow creatures', cards: 'Cards', unseen: 'Not met yet', inDeck: 'Collected', fromDraft: 'Found in rewards',
       recTitle: 'Records', last28: "Last 4 weeks of Today's Pass", wins: 'Wins', runs: 'Runs', totalMelt: 'Snow melted',
@@ -468,8 +470,10 @@
       return `<div class="result-art ${won ? 'won' : 'lost'}">${won ? A.sprite('brazier', 'res-art') : A.sprite('boulder', 'res-art')}</div>
         <h2>${won ? t.won : t.lost}</h2>
         <div class="big-score"><small>${t.score}</small><b>${run.score}</b></div>
+        ${vsBest(run)}
         <div class="stats"><span><b>${run.melted}</b><small>${t.meltedN}</small></span><span><b>${run.hearts}</b><small>${t.hearts}</small></span><span><b>${run.wave}</b><small>${t.reached}</small></span></div>
         ${foot}
+        <p class="note codex-line">${t.codex} · ${t.enemies} ${meta.seen.length}/${L.ENEMY_IDS.length} · ${t.cards} ${meta.cards.length}/${L.CARD_IDS.length}</p>
         <div class="row">
           <button class="primary" data-act="again">${run.mode === 'daily' ? t.again : t.newPractice}</button>
           <button class="ghost" data-act="${run.mode === 'daily' ? 'practice' : 'daily'}">${run.mode === 'daily' ? t.toPractice : t.toDaily}</button>
@@ -534,9 +538,19 @@
     for (const id of run.deck) if (!meta.cards.includes(id)) meta.cards.push(id);
   }
 
+  // 결과 화면 한 줄: 새 기록 축하 또는 최고 기록까지 남은 점수. 지난 기록이 없거나 모르면 비운다.
+  function vsBest(run) {
+    if (run.prevBest === undefined) return '';
+    const c = L.compareBest(run.score, run.prevBest);
+    if (c.kind === 'first') return '';
+    const text = c.kind === 'new' ? t.newBest(run.prevBest) : c.kind === 'tie' ? t.tieBest : t.gapBest(c.gap);
+    return `<p class="vs-best ${c.kind}">${text}</p>`;
+  }
+
   function finishIfOver(run) {
     if ((run.phase === 'won' || run.phase === 'lost') && !run.recorded) {
       run.recorded = true;
+      run.prevBest = L.bestToBeat(meta, run.mode, run.date || today());
       meta = L.record(meta, run, run.date || today());
       meta[meta.active] = run;
       (run.phase === 'won' ? sfx.win : sfx.lose)();

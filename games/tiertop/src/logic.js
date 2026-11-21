@@ -227,6 +227,16 @@
   }
 
   // 별: 주문을 채웠는지와 딱 맞음 비율
+  // 건넨 케이크에서 별 하나 더 받으려면 '딱 맞음'이 몇 번 더 필요했는지. 이미 셋이거나 못 건넸으면 null.
+  function perfectsToNextStar(run) {
+    if (!run.delivered) return null;
+    const h = Math.max(1, height(run));
+    const now = stars(run);
+    if (now >= 3) return null;
+    const target = now === 2 ? Math.ceil(h * 0.5) : Math.ceil(h * 0.2);
+    return { next: now + 1, need: Math.max(1, target - run.perfects) };
+  }
+
   function stars(run) {
     if (!run.delivered) return 0;
     const ratio = run.perfects / Math.max(1, height(run));
@@ -258,6 +268,7 @@
   }
 
   const logic = {
+    perfectsToNextStar,
     BASE_R, LAYER_H, PERFECT, MIN_R, GROW_EVERY, FLAVORS, CUSTOMERS,
     dayKey, hash, rng, unlockedFlavors, nextUnlock, dailyOrder, swing, dropperOffset,
     newRun, top, height, flavorAt, drop, newSave, sanitize, parseSave, sanitizeRun, recordRun, stars, nextCenterTime, simulate,

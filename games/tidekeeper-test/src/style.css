@@ -284,6 +284,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .pearl-hero { display: flex; justify-content: center; margin: 6px 0; }
 .pearl-hero svg { width: 150px; height: 112px; }
 .sea-text { font-size: 14.5px; line-height: 1.55; margin: 6px 0; }
+.sea-text.welcome-next { font-weight: 700; opacity: .85; }
 .sea-gain { font-size: 18px; font-weight: 800; margin: 10px 0 0; color: #0f4250; }
 .sea-gain.dim { font-size: 14.5px; color: var(--ink-soft); }
 .welcome-num { font-size: 40px; font-weight: 800; margin: 8px 0 0; color: #0f6a52; font-variant-numeric: tabular-nums; }

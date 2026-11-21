@@ -11,6 +11,7 @@
   const T = ko ? {
     brand: '등불 골목', today: '오늘의 골목', free: '자유 골목', string: '등불 줄',
     alley: (n) => `골목 ${n}`, turns: '회전', goal: '목표', lanterns: '등불',
+    toThree: (par) => `다음엔 ${par}번 안에 돌려 보세요. ★3이에요`, streakNow: (n) => `🏮 ${n}일 연속으로 골목을 밝혔어요`,
     restart: '처음 배치로', sound: '소리', on: '켜짐', off: '꺼짐',
     hint: '칸을 누르면 전선이 돌아가요. 가운데 발전기에서 모든 등불까지 이어 보세요.',
     loose: (n) => `등불은 다 켜졌지만 끊긴 전선 끝이 ${n}개 남았어요`,
@@ -25,6 +26,7 @@
   } : {
     brand: 'Lantern Alley', today: 'Today', free: 'Free Alleys', string: 'Lantern String',
     alley: (n) => `Alley ${n}`, turns: 'Turns', goal: 'Goal', lanterns: 'Lanterns',
+    toThree: (par) => `Next time, solve it in ${par} turns for ★3`, streakNow: (n) => `🏮 ${n} day${n === 1 ? '' : 's'} in a row`,
     restart: 'Reset tiles', sound: 'Sound', on: 'On', off: 'Off',
     hint: 'Tap a tile to turn its wire. Connect every lantern to the generator in the middle.',
     loose: (n) => `All lanterns are lit, but ${n} loose wire end${n > 1 ? 's are' : ' is'} left`,
@@ -177,6 +179,15 @@
     return view === 'free' ? state.free.board : state.day.boards[state.day.at];
   }
 
+  function threeTip(board) {
+    return Logic.movesToThree(board) > 0 ? `<p class="tip3">${T.toThree(board.par)}</p>` : '';
+  }
+
+  function streakLine() {
+    const n = Logic.streak(state.days, todayKey());
+    return n >= 2 ? `<p class="streak-now">${T.streakNow(n)}</p>` : '';
+  }
+
   function todayHtml() {
     const d = state.day;
     const board = d.boards[d.at];
@@ -187,9 +198,9 @@
       const all = d.boards.every((b) => b.done);
       const total = d.boards.reduce((s, b) => s + b.stars, 0);
       card = all
-        ? `<div class="card"><h3>${T.allDone}</h3>${stars(total, 9)}<p>${T.allSub(total)}</p>
+        ? `<div class="card"><h3>${T.allDone}</h3>${stars(total, 9)}<p>${T.allSub(total)}</p>${streakLine()}
             <div class="row"><button class="lit-btn" data-act="string">${T.seeString}</button><button class="ghost" data-act="free">${T.goFree}</button></div></div>`
-        : `<div class="card"><h3>${T.litAlley(d.at + 1)}</h3>${stars(board.stars)}<p>${T.turns} ${board.moves} · ${T.goal} ${board.par}</p>
+        : `<div class="card"><h3>${T.litAlley(d.at + 1)}</h3>${stars(board.stars)}<p>${T.turns} ${board.moves} · ${T.goal} ${board.par}</p>${threeTip(board)}
             <div class="row"><button class="lit-btn" data-act="nextAlley">${T.next}</button></div></div>`;
     }
     const [y, m, dd] = d.date.split('-').map(Number);
@@ -202,7 +213,7 @@
   function freeHtml() {
     const f = state.free;
     const b = f.board;
-    const card = b.done ? `<div class="card"><h3>${T.freeDone(f.level)}</h3>${stars(b.stars)}<p>${T.turns} ${b.moves} · ${T.goal} ${b.par}</p>
+    const card = b.done ? `<div class="card"><h3>${T.freeDone(f.level)}</h3>${stars(b.stars)}<p>${T.turns} ${b.moves} · ${T.goal} ${b.par}</p>${threeTip(b)}
       <div class="row"><button class="lit-btn" data-act="nextLevel">${T.nextLevel}</button></div></div>` : '';
     return `<div class="sub"><span class="date">${T.freeTitle(f.level)}</span><span>${T.size(b.w, b.h)}</span></div>
       <div class="stage">${boardHtml(b, `free:${f.level}`)}${card}</div>${meterHtml(b)}`;

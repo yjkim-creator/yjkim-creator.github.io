@@ -471,6 +471,23 @@
     return out;
   }
 
+  // 이번 판 전에 넘어야 했던 기록: 오늘의 고개는 오늘 최고, 연습은 연습 최고. 없으면 null.
+  function bestToBeat(meta, mode, date) {
+    if (mode === 'daily') {
+      const d = meta.days && meta.days[date];
+      return d && Number.isFinite(d.score) ? d.score : null;
+    }
+    return Number.isFinite(meta.best) && meta.best > 0 ? meta.best : null;
+  }
+
+  // 점수를 지난 기록과 견준다. 'first' 첫 기록, 'new' 새 기록, 'tie' 같음, 'gap' 모자람(gap 점).
+  function compareBest(score, prev) {
+    if (prev === null || prev === undefined) return { kind: 'first', gap: 0 };
+    if (score > prev) return { kind: 'new', gap: 0 };
+    if (score === prev) return { kind: 'tie', gap: 0 };
+    return { kind: 'gap', gap: prev - score };
+  }
+
   function streakDays(days, today) {
     let n = 0;
     const d = new Date(`${today}T12:00:00`);
@@ -483,6 +500,7 @@
   }
 
   const logic = {
+    bestToBeat, compareBest,
     TUNE, WOOD_START, WOOD_MAX, COLS, ROWS, WAVES, HAND, START_HEARTS, CARDS, CARD_IDS, ENEMIES, ENEMY_IDS, START_DECK,
     hash, makeWave, makeOffer, newRun, validTargets, play, pass, pick, upcoming,
     evaluate, bestMove, autoplay, dailySeed, newMeta, validRun, sanitize, record, streakDays,

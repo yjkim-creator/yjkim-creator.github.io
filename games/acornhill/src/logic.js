@@ -149,6 +149,12 @@
     const left = stockLeft(s);
     return left >= 12 ? 3 : left >= 6 ? 2 : 1;
   }
+  // 이긴 판에서 별 하나를 더 받으려면 더미를 몇 장 더 남겨야 했는지. 이미 셋이면 null.
+  function nextStarNeed(left) {
+    const n = Math.max(0, left | 0);
+    if (n >= 12) return null;
+    return n >= 6 ? { next: 3, need: 12 - n } : { next: 2, need: 6 - n };
+  }
   const acornsFrom = (s) => Math.floor(s.score / 10) + (status(s) === 'won' ? 5 : 0);
 
   // ---------- 풀이(도움 없이 이길 수 있는지) ----------
@@ -323,7 +329,7 @@
     RANKS, SUITS, LAYOUTS, MAP_SIZE, STORE,
     hashString, rng, shuffle, rankOf, suitOf, adjacent, layout,
     dealFromSeed, freshRound, solve, solvableDeal, top, stockLeft, isFree, freeSlots, canPlay, playable,
-    play, useWild, draw, status, stars, clearGain, winBonus, acornsFrom,
+    play, useWild, draw, status, stars, clearGain, winBonus, acornsFrom, nextStarNeed,
     mapHill, dayKey, dailyHill, unlocked, nextItem, newSave, sanitize, finish, best,
   };
   if (typeof module !== 'undefined') module.exports = logic;

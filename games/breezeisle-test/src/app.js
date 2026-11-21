@@ -14,7 +14,7 @@
     tipStart: '같은 것 셋을 이어 놓으면 한 단계 자라요', tipGull: '갈매기는 빈 칸으로 걸어요. 가두면 조개가 돼요',
     tipWind: '바람병은 찬 칸 하나를 날려 보내요', tipRainbow: '무지개 씨앗은 가장 좋은 짝으로 변해요', tipPouch: '주머니를 누르면 손에 든 것과 바꿔요',
     tipFull: '빈 칸이 얼마 안 남았어요. 주머니를 써 보세요', overTitle: '섬이 가득 찼어요', overDaily: '오늘의 섬 기록', overFree: '자유 섬 최고',
-    again: '다시 가꾸기', toFree: '자유 섬으로', toDaily: '오늘의 섬으로', codex: '섬 도감', found: '찾음', unknown: '아직 몰라요',
+    again: '다시 가꾸기', toFree: '자유 섬으로', toDaily: '오늘의 섬으로', codex: '섬 도감', found: '찾음', unknown: '아직 몰라요', newBest: (p) => `🎉 새 기록! (지난 최고 ${p}점)`, tieBest: '지난 최고 기록과 같아요', gapBest: (n) => `최고 기록까지 ${n}점`, codexLine: (a, b) => `섬 도감 ${a}/${b} 찾음`,
     week: '지난 오늘의 섬', close: '닫기', newFind: '도감에 새로', festival: '섬 축제!', made: '이번 판에 키운 것', muteOn: '소리 켜기', muteOff: '소리 끄기',
     howGarden: '정원 줄기', howSea: '바다 줄기', pts: '점', turn: '차례',
   } : {
@@ -22,7 +22,7 @@
     tipStart: 'Line up three alike to grow them one step', tipGull: 'Gulls wander to empty cells. Trap them to get shells',
     tipWind: 'The wind jar blows away one filled cell', tipRainbow: 'A rainbow seed becomes the best match', tipPouch: 'Tap the pouch to swap with your hand',
     tipFull: 'Only a few cells left. Try the pouch', overTitle: 'The isle is full', overDaily: "Today's record", overFree: 'Free isle best',
-    again: 'Grow again', toFree: 'Go to free isle', toDaily: "Go to today's isle", codex: 'Isle Guide', found: 'found', unknown: 'Not yet found',
+    again: 'Grow again', toFree: 'Go to free isle', toDaily: "Go to today's isle", codex: 'Isle Guide', found: 'found', unknown: 'Not yet found', newBest: (p) => `🎉 New record! (was ${p})`, tieBest: 'Tied your record', gapBest: (n) => `${n} short of your record`, codexLine: (a, b) => `Isle Guide ${a}/${b} found`,
     week: "Past daily isles", close: 'Close', newFind: 'New in guide', festival: 'Isle festival!', made: 'Grown this round', muteOn: 'Sound on', muteOff: 'Sound off',
     howGarden: 'Garden line', howSea: 'Sea line', pts: 'pts', turn: 'Turn',
   };
@@ -264,7 +264,15 @@
   }
   const POINT_RANK = (k) => L.POINTS[k] || 0;
 
+  function vsBestLine(score, prev) {
+    const c = L.compareBest(score, prev);
+    if (demo || c.kind === 'first') return '';
+    const text = c.kind === 'new' ? S.newBest(fmt(prev)) : c.kind === 'tie' ? S.tieBest : S.gapBest(fmt(c.gap));
+    return `<p class="vs-best ${c.kind}">${text}</p>`;
+  }
+
   function gameOver() {
+    const prevBest = L.bestToBeat(save, run);
     if (!demo) { save = L.record(save, run); save.plays += 1; writeSave(); }
     if (!demo) if (window.Rank && !/shot=/.test(location.hash)) Rank.submit(run.score);
     const isDaily = run.mode === 'daily';
@@ -276,7 +284,9 @@
       <h2>${S.overTitle}</h2>
       <p class="big">${fmt(run.score)}<small>${S.pts}</small></p>
       <p class="sub">${isDaily ? S.overDaily : S.overFree} ${fmt(Math.max(best, run.score))} · ${S.turn} ${run.turn}</p>
+      ${vsBestLine(run.score, prevBest)}
       ${madeSummary(run)}
+      <p class="sub codex-line">${S.codexLine(L.ITEMS.filter((k) => save.codex[k]).length, L.ITEMS.length)}</p>
       <div class="row"><button class="primary" data-act="again">${S.again}</button><button data-act="${isDaily ? 'toFree' : 'toDaily'}">${isDaily ? S.toFree : S.toDaily}</button></div>
       <div class="row"><button data-rank-open>${/^en/i.test(navigator.language || '') ? '🏆 Leaderboard' : '🏆 전국 랭킹'}</button></div>`, 'over');
   }

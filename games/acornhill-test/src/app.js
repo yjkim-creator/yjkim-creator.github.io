@@ -289,6 +289,8 @@
     const before = save.acorns;
     const gained = Logic.acornsFrom(state);
     const starCount = Logic.stars(state);
+    const prevStars = state.mode === 'map' && !demo ? (save.stars[state.key] || 0) : 0;
+    lastStars = { prev: prevStars, removed: state.removed.filter(Boolean).length, total: state.removed.length };
     if (!demo) { save = Logic.finish(save, state); writeSave(); }
     if (st === 'won') {
       Sfx.play('win');
@@ -302,6 +304,23 @@
     }
     showResult(st, gained, starCount, before);
     if (!demo && !shotMode && window.onestoreAd) window.onestoreAd.atBreak();
+  }
+  // 결과 화면에 붙이는 말(이 사본에 없는 언어 문구를 따로 둔다).
+  const MORE = ko ? {
+    toStar: (need, next) => `더미를 ${need}장 더 남기면 ★${next}`, starUp: (a) => `⭐ 이 언덕 별 기록 갱신! (전에는 ${a}개)`, cleared: (a, b) => `${b}장 중 ${a}장을 걷었어요. 거의 다 왔어요!`,
+  } : (typeof LANG !== 'undefined' && LANG === 'ja') ? {
+    toStar: (need, next) => `山札をあと${need}枚残せば★${next}`, starUp: (a) => `⭐ この丘の星の記録を更新!(前は${a}個)`, cleared: (a, b) => `${b}枚中${a}枚を片づけました。あと少し!`,
+  } : {
+    toStar: (need, next) => `Leave ${need} more stock card${need === 1 ? '' : 's'} for ★${next}`, starUp: (a) => `⭐ New star record on this hill! (was ${a})`, cleared: (a, b) => `You cleared ${a} of ${b} cards. So close!`,
+  };
+  let lastStars = { prev: 0, removed: 0, total: 0 };
+  function goalLines(st, starCount, left) {
+    let out = '';
+    if (st === 'won' && state.mode === 'map' && !demo && lastStars.prev > 0 && starCount > lastStars.prev) out += `<p class="goal-line up">${MORE.starUp(lastStars.prev)}</p>`;
+    const ns = st === 'won' ? Logic.nextStarNeed(left) : null;
+    if (ns) out += `<p class="goal-line">${MORE.toStar(ns.need, ns.next)}</p>`;
+    if (st === 'lost' && lastStars.removed > 0) out += `<p class="goal-line">${MORE.cleared(lastStars.removed, lastStars.total)}</p>`;
+    return out;
   }
   function showResult(st, gained, starCount, before) {
     const left = Logic.stockLeft(state);
@@ -321,6 +340,7 @@
           <div><dt>${ko ? '가장 긴 연속' : 'Best chain'}</dt><dd>${state.bestStreak}</dd></div>
           ${st === 'won' ? `<div><dt>${L.leftStock(left)}</dt><dd>+${Logic.winBonus(state)}</dd></div>` : ''}
         </dl>
+        ${goalLines(st, starCount, left)}
         <div class="gain"><span class="nut"></span><b>${L.got(gained)}</b></div>
         <div class="progress"><i style="width:${pct}%"></i></div>
         <p class="next-item">${nxt ? L.nextItem(nxt.at - total, `${nxt.icon} ${ko ? nxt.ko : nxt.en}`) : L.allItems}</p>

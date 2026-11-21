@@ -8,6 +8,7 @@
     voyageTitle: (n) => `${n}번째 포구`, dailyTitle: (i) => `오늘의 포구 ${i + 1}/3`,
     left: (n) => `남은 배 ${n}척`, winTitle: '포구가 비었어요!', loseTitle: '등불이 모두 꺼졌어요',
     loseBody: '부딪히면 등불이 하나씩 꺼져요. 뱃머리 앞이 트인 배부터 띄워 보세요.',
+    toThree: (n) => `${n}번 덜 부딪히면 ★3!`, tryThree: '다시 해서 ★3 받기', loseProgress: (a, b) => `${b}척 중 ${a}척을 띄웠어요. 조금만 더!`,
     next: '다음 포구로', again: '다시 띄우기', nextDaily: '다음 판', allDaily: '오늘 세 판을 다 띄웠어요. 도장 꾹!',
     close: '닫기', sound: '소리', bookTitle: '항해 도장첩', stars: '모은 별', sailed: '띄운 배', reached: '도착한 포구', stampDays: '도장 찍은 날',
     tipFirst: '배를 톡 누르면 뱃머리 쪽으로 나가요', bump: '쿵!', sailOff: '출항', week: ['일', '월', '화', '수', '목', '금', '토'],
@@ -17,6 +18,7 @@
     voyageTitle: (n) => `Harbor ${n}`, dailyTitle: (i) => `Today's harbor ${i + 1}/3`,
     left: (n) => `${n} boats left`, winTitle: 'Harbor cleared!', loseTitle: 'All lanterns went out',
     loseBody: 'Each bump puts out a lantern. Start with boats whose bow has open water.',
+    toThree: (n) => `${n} fewer bump${n === 1 ? '' : 's'} for ★3!`, tryThree: 'Try again for ★3', loseProgress: (a, b) => `You sailed ${a} of ${b} boats. So close!`,
     next: 'Next harbor', again: 'Sail again', nextDaily: 'Next one', allDaily: "All three of today's harbors are clear. Stamped!",
     close: 'Close', sound: 'Sound', bookTitle: 'Voyage stamp book', stars: 'Stars', sailed: 'Boats sailed', reached: 'Harbors reached', stampDays: 'Stamped days',
     tipFirst: 'Tap a boat and it sails toward its bow', bump: 'Bonk!', sailOff: 'Away', week: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
@@ -534,10 +536,11 @@
       const allDaily = row && row.every((v) => v > 0);
       veil.innerHTML = `<div class="card win"><div class="paperboat"></div><h2>${T.winTitle}</h2><div class="stars">${starsHtml(stars)}</div>
         <p class="winstat">${T.winStat(puzzle.boats.length, run.bumps)}</p>
+        ${stars < 3 ? `<p class="to-three">${T.toThree(Logic.bumpsToThree(run.bumps))}</p>` : ''}
         ${allDaily ? `<p class="stamp-note"><span class="stamp">✓</span>${T.allDaily}</p>` : ''}
-        <button class="primary" data-act="${ref.mode === 'daily' ? (allDaily ? 'book' : 'nextdaily') : 'next'}">${ref.mode === 'daily' ? (allDaily ? T.book : T.nextDaily) : T.next}</button></div>`;
+        <button class="primary" data-act="${ref.mode === 'daily' ? (allDaily ? 'book' : 'nextdaily') : 'next'}">${ref.mode === 'daily' ? (allDaily ? T.book : T.nextDaily) : T.next}</button>${stars < 3 ? `<button class="retry-three" data-act="retry">${T.tryThree}</button>` : ''}</div>`;
     } else if (overlay === 'lose') {
-      veil.innerHTML = `<div class="card lose"><div class="lanterns big">${[0, 1, 2].map(() => lanternSvg(false)).join('')}</div><h2>${T.loseTitle}</h2><p>${T.loseBody}</p><button class="primary" data-act="retry">${T.again}</button></div>`;
+      veil.innerHTML = `<div class="card lose"><div class="lanterns big">${[0, 1, 2].map(() => lanternSvg(false)).join('')}</div><h2>${T.loseTitle}</h2>${run.removed.length ? `<p class="lose-progress">${T.loseProgress(run.removed.length, puzzle.boats.length)}</p>` : ''}<p>${T.loseBody}</p><button class="primary" data-act="retry">${T.again}</button></div>`;
     } else if (overlay === 'book') {
       veil.innerHTML = bookHtml();
     }

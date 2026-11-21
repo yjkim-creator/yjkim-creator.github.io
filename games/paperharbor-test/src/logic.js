@@ -235,6 +235,11 @@
     return Math.max(1, MAX_LANTERNS - Math.max(0, bumps | 0));
   }
 
+  // 별 3개까지 덜 부딪혀야 하는 횟수(이미 3개면 0).
+  function bumpsToThree(bumps) {
+    return Math.max(0, Math.max(0, bumps | 0));
+  }
+
   // 한 판 진행. run = { removed: [id], bumps, done, lost }
   function newRun() {
     return { removed: [], bumps: 0, done: false, lost: false };
@@ -320,6 +325,7 @@
   }
 
   const logic = {
+    bumpsToThree,
     DIRS, MAX_LANTERNS, DAILY_COUNT,
     rng, hashString, cellsOf, occupancy, pathStatus, boatAt, solve, freeBoats,
     generate, levelSpec, levelSeed, dateKey, dailySpec, dailySeed, puzzleFor,

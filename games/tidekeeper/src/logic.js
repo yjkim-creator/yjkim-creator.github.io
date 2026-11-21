@@ -80,6 +80,7 @@
       stamps: [],
       daily: newDaily(now),
       lastSeen: now,
+      rateTier: 0,
     };
   }
 
@@ -122,6 +123,8 @@
     // 시계가 뒤로 갔거나 미래 시각이 저장돼 있으면 지금으로 본다.
     const seen = num(raw.lastSeen, 0, 1e15, now);
     s.lastSeen = seen > now ? now : seen;
+    // 예전 저장값에는 이정표가 없다. 지금 생산량으로 채워서 돌아오자마자 축하가 쏟아지지 않게 한다.
+    s.rateTier = typeof raw.rateTier === 'number' && Number.isFinite(raw.rateTier) ? Math.floor(num(raw.rateTier, 0, 300, 0)) : rateTier(perSecond(s, now));
     return s;
   }
 
@@ -222,10 +225,18 @@
     return { ...s, grid: s.grid.map((t) => (t ? { ...t } : null)), visitors: [...s.visitors], stamps: [...s.stamps], daily: { ...s.daily } };
   }
 
+  // 초당 생산량 자릿수 이정표: 10 → 1, 100 → 2, 1천 → 3 ...
+  function rateTier(rate) {
+    return rate >= 10 ? Math.floor(Math.log10(rate) + 1e-9) : 0;
+  }
+
   function after(s, now) {
     const visitors = checkVisitors(s, now);
     const daily = checkDaily(s, now);
-    return { state: s, visitors, daily };
+    const tier = rateTier(perSecond(s, now));
+    let milestone = 0;
+    if (tier > (s.rateTier || 0)) { s.rateTier = tier; milestone = tier; }
+    return { state: s, visitors, daily, milestone };
   }
 
   // 흐른 시간만큼 쌓는다. 앱을 닫아 둔 시간은 8시간까지만 센다.
@@ -326,7 +337,7 @@
   const logic = {
     COLS, ROWS, SLOTS, SPECIES, VISITORS, OFFLINE_CAP, MAX_LEVEL, PEARL_UNIT,
     newState, sanitize, neighbors, liked, tide, tileRate, perSecond, tapValue, plantCost, upgradeCost,
-    tick, tap, plant, upgrade, move, clear, release, pendingPearls, taskProgress, dateKey, globalMult, levelMult,
+    tick, tap, plant, upgrade, move, clear, release, pendingPearls, taskProgress, dateKey, globalMult, levelMult, rateTier,
   };
 
   if (typeof module !== 'undefined') module.exports = logic;

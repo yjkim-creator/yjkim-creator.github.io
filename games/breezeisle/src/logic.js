@@ -337,12 +337,27 @@
     return s;
   }
 
+  // 이번 판 전에 넘어야 했던 기록(오늘의 섬은 그날 최고, 자유 섬은 자유 최고). 없으면 null.
+  function bestToBeat(save, run) {
+    const v = run.mode === 'daily' && run.date ? save.days[run.date] : save.best;
+    return Number.isFinite(v) && v > 0 ? v : null;
+  }
+
+  // 'first' 첫 기록, 'new' 새 기록, 'tie' 같음, 'gap' 모자람(gap 점).
+  function compareBest(score, prev) {
+    if (prev === null || prev === undefined) return { kind: 'first', gap: 0 };
+    if (score > prev) return { kind: 'new', gap: 0 };
+    if (score === prev) return { kind: 'tie', gap: 0 };
+    return { kind: 'gap', gap: prev - score };
+  }
+
   function dateKey(d = new Date()) {
     const p = (n) => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
   }
 
   const logic = {
+    bestToBeat, compareBest,
     N, CELLS, GARDEN, SEA, SPECIAL, ITEMS, PIECES, POINTS, FESTIVAL, DRAW,
     nextOf, neighbors, group, empties, hashSeed, canPlace, place, swap, newRun, dailyRun,
     evaluate, bestMove, playMove, sanitizeRun, sanitizeSave, newSave, record, dateKey,

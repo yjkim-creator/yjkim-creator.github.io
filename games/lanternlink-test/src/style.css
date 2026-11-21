@@ -139,6 +139,8 @@ html.shot .card { animation: none; }
 @keyframes rise { from { transform: translate(-50%, 20px); opacity: 0; } }
 .card h3 { margin: 0 0 2px; font-size: 18px; }
 .card p { margin: 4px 0 10px; font-size: 13px; color: #5a4535; }
+.card p.tip3 { margin-top: -4px; font-weight: 700; color: #a2481c; }
+.card p.streak-now { margin-top: -4px; font-weight: 800; font-size: 14px; color: #a2481c; }
 .card .stars { font-size: 18px; color: #2a1c1830; }
 .card .stars i.got { color: #e07a1a; text-shadow: none; }
 .row { display: flex; gap: 8px; flex-wrap: wrap; }
