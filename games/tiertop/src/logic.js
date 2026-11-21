@@ -127,14 +127,16 @@
     if (d <= PERFECT) {
       const streak = run.streak + 1;
       const grow = streak % GROW_EVERY === 0;
-      const r = grow ? Math.min(BASE_R, t.r + GROW) : t.r;
+      const cap = run.mode === 'stage' ? run.layers[0].r : BASE_R;
+      const r = (grow ? Math.min(cap, t.r + GROW) : t.r) - shrinkOf(run);
+      if (r < MIN_R) return { run: { ...next, over: true, streak: 0 }, event: { type: 'miss', d, at: { x: at.x, z: at.z }, r: t.r, flavor } };
       next.layers.push({ x: t.x, z: t.z, r, flavor });
       Object.assign(next, {
         streak, bestStreak: Math.max(run.bestStreak, streak), perfects: run.perfects + 1, score: run.score + 1 + Math.min(streak, 5),
       });
       return finishDrop(run, next, { type: 'perfect', streak, grew: grow && r > t.r, d });
     }
-    const r = t.r - d / 2;
+    const r = t.r - d / 2 - shrinkOf(run);
     if (d >= t.r || r < MIN_R) {
       next.over = true;
       next.streak = 0;
@@ -145,7 +147,20 @@
     // 잘려 나간 쪽: 놓은 원에서 바깥으로 삐져나간 방향
     return finishDrop(run, next, { type: 'trim', d, cut: { dx: dx / d, dz: dz / d } });
   }
+  function shrinkOf(run) {
+    return run.mode === 'stage' ? stageSpec(run.stage).shrink : 0;
+  }
   function finishDrop(before, next, event) {
+    if (next.mode === 'stage') {
+      if (height(next) >= next.target) {
+        next.cleared = true;
+        next.delivered = true;
+        next.over = true;
+        event.cleared = true;
+        event.delivered = true;
+      }
+      return { run: next, event };
+    }
     if (!before.delivered && height(next) >= next.target) {
       next.delivered = true;
       event.delivered = true;
@@ -155,7 +170,7 @@
 
   // ---------- 저장 ----------
   function newSave() {
-    return { v: 1, best: 0, totalLayers: 0, runs: 0, stamps: 0, lastStamp: '', daily: { key: '', best: 0, done: false }, bestStreak: 0 };
+    return { v: 1, best: 0, totalLayers: 0, runs: 0, stamps: 0, lastStamp: '', daily: { key: '', best: 0, done: false }, bestStreak: 0, stage: { best: 0, stars: [], plays: 0 } };
   }
   const num = (v, min = 0, max = 1e7) => (Number.isFinite(v) ? Math.max(min, Math.min(max, Math.floor(v))) : min);
   function sanitize(raw) {
@@ -175,7 +190,15 @@
         done: daily.done === true,
       },
       bestStreak: num(raw.bestStreak, 0, 100000),
+      stage: sanitizeStage(raw.stage),
     };
+  }
+  // 단계 기록: 예전 저장에는 없으므로 비어 있으면 0단계부터.
+  function sanitizeStage(raw) {
+    const st = raw && typeof raw === 'object' ? raw : {};
+    const best = num(st.best, 0, 9999);
+    const stars = Array.isArray(st.stars) ? st.stars.slice(0, best).map((x) => num(x, 0, 3)) : [];
+    return { best, stars, plays: num(st.plays) };
   }
   function parseSave(text) {
     try { return sanitize(JSON.parse(text)); } catch { return newSave(); }
@@ -267,7 +290,197 @@
     return run;
   }
 
+  // ---------- 단계 도전: 1~60단계(10단계마다 새 장치와 테마) 뒤로 끝없는 단계 ----------
+  // 모든 장치는 '진자가 가운데(또는 바람을 되갚는 자리)를 지나는 순간'이 반드시 오도록 만든다.
+  // 바람·받침은 흔들림과 같은 축 위에서만 움직이고, 8자 짤주머니와는 함께 나오지 않는다(그러면 딱 맞출 자리가 사라진다).
+  const FALL_T = 0.2; // 손을 뗀 뒤 층이 닿기까지(초). 화면과 판정이 같은 값을 쓴다.
+  const STAGE_CAP = 9999;
+  const STAGE_MAIN = 60;
+  const CHAPTERS = [
+    { id: 'kitchen', device: 'basic', ko: '바닐라 주방', en: 'Vanilla Kitchen', ja: 'バニラのキッチン', sky: ['#ffcfc0', '#fff3e3'], plate: '#ffffff', lace: '#ffe0ea', flavors: ['vanilla', 'strawberry', 'choco'] },
+    { id: 'garden', device: 'wind', ko: '딸기 정원', en: 'Strawberry Garden', ja: 'いちごの庭', sky: ['#bfe8c9', '#fff4ea'], plate: '#fff7fb', lace: '#ff9fb8', flavors: ['strawberry', 'vanilla', 'lemon', 'matcha'] },
+    { id: 'workshop', device: 'slide', ko: '초코 공방', en: 'Choco Workshop', ja: 'チョコ工房', sky: ['#e8c4a4', '#fff1df'], plate: '#f6e8da', lace: '#b07a5a', flavors: ['choco', 'vanilla', 'redvelvet', 'mango'] },
+    { id: 'teahouse', device: 'eight', ko: '말차 찻집', en: 'Matcha Teahouse', ja: '抹茶の茶屋', sky: ['#cfe7b8', '#f7f6e6'], plate: '#f4f9ee', lace: '#8cc26a', flavors: ['matcha', 'vanilla', 'blacksesame', 'taro'] },
+    { id: 'night', device: 'shrink', ko: '블루베리 밤', en: 'Blueberry Night', ja: 'ブルーベリーの夜', sky: ['#6d78c4', '#d3cdf3'], plate: '#eef0ff', lace: '#8a93e6', flavors: ['blueberry', 'taro', 'mint', 'vanilla'] },
+    { id: 'festival', device: 'rubato', ko: '무지개 축제', en: 'Rainbow Festival', ja: 'にじのお祭り', sky: ['#ffd1e8', '#d8f3ff'], plate: '#ffffff', lace: '#ffd166', flavors: ['mango', 'mint', 'strawberry', 'blueberry', 'lemon'] },
+    { id: 'endless', device: 'mix', ko: '끝없는 주방', en: 'Endless Kitchen', ja: 'はてしないキッチン', sky: ['#ffbe94', '#fff0d0'], plate: '#fffaf0', lace: '#e2627f', flavors: ['pumpkin', 'redvelvet', 'lemon', 'matcha', 'choco'] },
+  ];
+
+  const clampStage = (n) => Math.max(1, Math.min(STAGE_CAP, Math.floor(Number(n)) || 1));
+  const chapterOf = (n) => (clampStage(n) > STAGE_MAIN ? 6 : Math.floor((clampStage(n) - 1) / 10));
+
+  // 단계 n의 설정. 같은 n이면 언제나 같은 판(씨앗으로 정한다).
+  function stageSpec(stage) {
+    const n = clampStage(stage);
+    const ch = chapterOf(n);
+    const k = n > STAGE_MAIN ? (n - STAGE_MAIN - 1) % 10 : (n - 1) % 10; // 장 안에서 0~9
+    const g = Math.min(1, (n - 1) / (STAGE_MAIN - 1)); // 1~60단계에서 0~1
+    const e = Math.max(0, n - STAGE_MAIN); // 끝없는 단계 수
+    const r = rng(hash(`stage:${n}`));
+    const spec = {
+      n, chapter: ch, device: CHAPTERS[ch].device,
+      target: n <= STAGE_MAIN ? 5 + Math.ceil(n * 0.55) : Math.min(46, 38 + Math.floor(e / 6)),
+      baseR: Math.round(BASE_R * (1 - 0.16 * g) * 1000) / 1000,
+      amp: Math.min(2.2, 1.6 + 0.35 * g + 0.02 * k),
+      speed: Math.min(2.15, 1.1 + 0.035 * k + 0.55 * g + Math.min(0.25, e * 0.004)),
+      turn: 0.26 + r() * 0.18,
+      phase: r() * Math.PI * 2,
+      wind: 0, slide: 0, slideF: 0, eight: 0, shrink: 0, rubato: 0, rubatoF: 0,
+    };
+    const roll = r();
+    const extra = r();
+    // 그 장의 장치는 세게, 앞 장에서 배운 장치는 가끔 약하게 섞는다.
+    if (ch === 1) spec.wind = 0.22 + 0.03 * k;
+    if (ch === 2) { spec.slide = 0.32 + 0.03 * k; spec.slideF = 0.75 + 0.05 * k; if (roll < 0.4) spec.wind = 0.2; }
+    if (ch === 3) spec.eight = 0.42 + 0.03 * k;
+    if (ch === 4) {
+      spec.shrink = 0.012 + 0.0015 * k;
+      if (roll < 0.35) spec.eight = 0.5; else if (roll < 0.7) spec.wind = 0.25; else { spec.slide = 0.35; spec.slideF = 0.8; }
+    }
+    if (ch === 5) {
+      spec.rubato = 0.22 + 0.025 * k;
+      spec.rubatoF = 1.1 + 0.05 * k;
+      if (roll < 0.3) spec.eight = 0.55; else if (roll < 0.6) spec.wind = 0.28; else if (roll < 0.85) { spec.slide = 0.4; spec.slideF = 0.85; }
+      if (extra < 0.35) spec.shrink = 0.012;
+    }
+    if (ch === 6) {
+      const s = Math.min(1, e / 120); // 끝없는 단계가 깊어질수록 조금씩 세진다
+      if (roll < 0.3) spec.eight = 0.5 + 0.2 * s;
+      else {
+        if (roll < 0.65 || extra < 0.5) spec.wind = 0.24 + 0.12 * s;
+        if (roll >= 0.65 || extra < 0.3) { spec.slide = 0.35 + 0.15 * s; spec.slideF = 0.85 + 0.15 * s; }
+      }
+      if (extra > 0.45) { spec.rubato = 0.24 + 0.08 * s; spec.rubatoF = 1.2; }
+      if (r() < 0.4) spec.shrink = 0.012 + 0.006 * s;
+    }
+    if (spec.slide) spec.turn = 0; // 받침이 움직이는 판은 흔들리는 축을 돌리지 않는다(같은 줄 위에서만 엇갈린다)
+    // 사람이 누를 수 있게: 가운데를 지나는 가장 빠른 속도를 묶어 딱 맞음 구간이 44ms 밑으로 내려가지 않게 한다.
+    const geom = Math.hypot(spec.amp, 2 * spec.eight);
+    const room = (5 - spec.slide * spec.slideF) / geom - 0.3 - spec.rubato * spec.rubatoF;
+    spec.speed = Math.max(0.9, Math.min(spec.speed, room));
+    spec.seed = hash(`stage-swing:${n}`) % 100000;
+    return spec;
+  }
+
+  // 흔들림 각: 박자(rubato)는 빨라졌다 느려지지만 늘 앞으로만 간다(되돌아가지 않으므로 가운데를 반드시 지난다).
+  function stageTheta(spec, h, t) {
+    const w = spec.speed + Math.min(0.3, h * 0.01);
+    return w * t + (spec.rubato ? spec.rubato * Math.sin(spec.rubatoF * t) : 0);
+  }
+  function stageAxis(spec, t) {
+    const a = spec.phase + spec.turn * t;
+    return { x: Math.cos(a), z: Math.sin(a) };
+  }
+  // 짤주머니 위치(위층 가운데 기준). 8자 짤주머니는 옆으로도 흔들리지만 가운데를 지날 때는 옆 흔들림도 0이다.
+  function stageOffset(spec, h, t) {
+    const th = stageTheta(spec, h, t);
+    const ax = stageAxis(spec, t);
+    const along = spec.amp * Math.sin(th);
+    const side = spec.eight ? spec.eight * Math.sin(2 * th) : 0;
+    return { x: along * ax.x - side * ax.z, z: along * ax.z + side * ax.x };
+  }
+  // 바람: 층마다 세기와 방향(축의 앞뒤)이 다르다.
+  function stageWind(spec, layerIndex, t) {
+    if (!spec.wind) return { x: 0, z: 0, s: 0 };
+    const r = rng(hash(`wind:${spec.n}:${layerIndex}`));
+    const s = (0.55 + 0.45 * r()) * spec.wind * (r() < 0.5 ? -1 : 1);
+    const ax = stageAxis(spec, t);
+    return { x: s * ax.x, z: s * ax.z, s };
+  }
+  // 흔들리는 받침: 케이크 전체가 흔들림과 같은 축 위에서 미끄러진다.
+  function stageSlide(spec, t) {
+    if (!spec.slide) return { x: 0, z: 0 };
+    const ax = stageAxis(spec, t);
+    const m = spec.slide * Math.sin(spec.slideF * t);
+    return { x: m * ax.x, z: m * ax.z };
+  }
+
+  function newStageRun(stage, flavorIds) {
+    const spec = stageSpec(stage);
+    const ids = flavorIds && flavorIds.length ? flavorIds : CHAPTERS[spec.chapter].flavors;
+    return {
+      mode: 'stage', stage: spec.n, order: `stage-${spec.n}`, target: spec.target, seed: spec.seed,
+      flavors: ids.slice(),
+      layers: [{ x: 0, z: 0, r: spec.baseR, flavor: ids[0] }],
+      score: 0, streak: 0, bestStreak: 0, perfects: 0, over: false, delivered: false, cleared: false,
+    };
+  }
+
+  // 지금 손을 떼면 위층 가운데에서 얼마나 떨어진 곳에 닿는지(케이크 기준). 오늘의 주문은 예전과 똑같다.
+  function landingAt(run, t) {
+    if (run.mode !== 'stage') return dropperOffset(t, height(run), run.seed);
+    const spec = stageSpec(run.stage);
+    const o = stageOffset(spec, height(run), t);
+    const w = stageWind(spec, run.layers.length, t);
+    const p = stageSlide(spec, t + FALL_T);
+    return { x: o.x + w.x - p.x, z: o.z + w.z - p.z };
+  }
+  // 화면에 그릴 짤주머니 위치(위층 가운데 기준, 바람 전)
+  function hoverAt(run, t) {
+    return run.mode === 'stage' ? stageOffset(stageSpec(run.stage), height(run), t) : dropperOffset(t, height(run), run.seed);
+  }
+  function plateShift(run, t) {
+    return run && run.mode === 'stage' ? stageSlide(stageSpec(run.stage), t) : { x: 0, z: 0 };
+  }
+
+  // 딱 맞출 수 있는 시간 구간들을 찾는다(시연 손과 검증용). step 초 간격으로 훑는다.
+  function perfectWindows(run, from, span, step = 0.002) {
+    const out = [];
+    let start = null;
+    for (let t = from; t <= from + span; t += step) {
+      const l = landingAt(run, t);
+      const ok = Math.hypot(l.x, l.z) <= PERFECT;
+      if (ok && start === null) start = t;
+      if (!ok && start !== null) { out.push({ a: start, b: t - step }); start = null; }
+    }
+    if (start !== null) out.push({ a: start, b: from + span });
+    return out;
+  }
+  // 다음으로 딱 맞출 수 있는 가장 가까운 순간(구간 가운데). 없으면 null.
+  function nextPerfectTime(run, from, span = 6) {
+    const w = perfectWindows(run, from, span, 0.004).find((x) => x.b - x.a >= 0.012);
+    return w ? (w.a + w.b) / 2 : null;
+  }
+
+  // 단계 별: 목표를 채웠으면 ★1, 딱 맞음이 절반 이상 ★2, 80% 이상 ★3
+  function stageStars(run) {
+    if (!run.cleared) return 0;
+    const ratio = run.perfects / Math.max(1, height(run));
+    return ratio >= 0.8 ? 3 : ratio >= 0.5 ? 2 : 1;
+  }
+  const totalStageStars = (save) => (save.stage && save.stage.stars ? save.stage.stars.reduce((a, b) => a + b, 0) : 0);
+  // 전국 랭킹 '최고 도달 단계' 점수: 단계 × 1000 + 모은 별(같은 단계면 별이 많은 쪽이 위)
+  const stageRankScore = (save) => (save.stage && save.stage.best > 0 ? save.stage.best * 1000 + Math.min(999, totalStageStars(save)) : 0);
+  const stageUnlocked = (save, n) => clampStage(n) <= Math.min(STAGE_CAP, ((save.stage && save.stage.best) || 0) + 1);
+
+  // 단계 판이 끝났을 때 기록을 더한다.
+  function recordStage(save, run) {
+    const s = sanitize(save);
+    const h = height(run);
+    const before = unlockedFlavors(s.totalLayers).length;
+    const st = { ...s.stage, stars: s.stage.stars.slice(), plays: s.stage.plays + 1 };
+    const stars = stageStars(run);
+    const firstClear = run.cleared && run.stage > st.best;
+    if (run.cleared) {
+      st.best = Math.max(st.best, run.stage);
+      while (st.stars.length < Math.min(run.stage, STAGE_CAP)) st.stars.push(0);
+      const i = run.stage - 1;
+      st.stars[i] = Math.max(st.stars[i] || 0, stars);
+    }
+    const next = {
+      ...s,
+      totalLayers: s.totalLayers + h,
+      runs: s.runs + 1,
+      bestStreak: Math.max(s.bestStreak, run.bestStreak),
+      stage: st,
+    };
+    const unlocked = unlockedFlavors(next.totalLayers).slice(before);
+    return { save: next, cleared: run.cleared, stars, firstClear, newBest: firstClear, unlocked };
+  }
+
   const logic = {
+    FALL_T, STAGE_CAP, STAGE_MAIN, CHAPTERS, chapterOf, stageSpec, stageOffset, stageWind, stageSlide, newStageRun, landingAt, hoverAt, plateShift,
+    perfectWindows, nextPerfectTime, stageStars, totalStageStars, stageRankScore, stageUnlocked, recordStage, sanitizeStage,
     perfectsToNextStar,
     BASE_R, LAYER_H, PERFECT, MIN_R, GROW_EVERY, FLAVORS, CUSTOMERS,
     dayKey, hash, rng, unlockedFlavors, nextUnlock, dailyOrder, swing, dropperOffset,

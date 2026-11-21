@@ -213,6 +213,7 @@
       });
       const gain = Logic.clearGain(state.streak);
       Sfx.play('chime', { pitch: 2 ** (Math.min(state.streak - 1, 12) / 12) });
+      if (!demo && window.Haptics) Haptics.buzz(state.streak > 0 && state.streak % 5 === 0 ? 'good' : 'tick');
       Kit3D.burst(world.scene, pos, HillScene.SUIT_COLORS[Math.floor(card / 13)], { count: state.streak >= 5 ? 18 : 10, speed: 3.6, size: 0.13, life: 0.7 });
       const at = world.screenOf(pos);
       pop(`+${gain}`, at, state.streak >= 5 ? 'big' : '');
@@ -294,6 +295,7 @@
     if (!demo) { save = Logic.finish(save, state); writeSave(); }
     if (st === 'won') {
       Sfx.play('win');
+      if (!demo && window.Haptics) Haptics.buzz('big');
       world.squirrel.cheer();
       const p = world.pilePos();
       [0, 1, 2].forEach((k) => setTimeout(() => Kit3D.burst(world.scene, p.clone().add(new THREE.Vector3((k - 1) * 1.4, 0.6, -1.5)), ['#f0b43c', '#cf452c', '#e8742a'][k], { count: 20, speed: 5, size: 0.16, life: 1.1 }), k * 160));

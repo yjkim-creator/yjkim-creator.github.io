@@ -111,3 +111,22 @@ li:not(.on) .mini { opacity: .55; }
   .receipt .tall b { font-size: 32px; }
   .sheet { gap: 7px; }
 }
+
+/* ---------- 단계 도전 ---------- */
+.go.alt { background: var(--butter); color: var(--cocoa); text-shadow: none; min-height: 50px; font-size: 18px; }
+.row.three { width: min(100%, 340px); }
+.row.three .ghost { flex: 1; min-width: 0; padding: 0 6px; font-size: 14px; }
+.receipt.intro .how { margin: 8px 0 4px; font-size: 14px; line-height: 1.5; font-weight: 700; color: var(--cocoa); }
+.rankline { margin: 8px 0 0; padding-top: 8px; border-top: 2px dashed #ecdcd2; font-size: 13px; text-align: center; font-weight: 900; color: var(--cocoa); }
+.paper.picker { display: flex; flex-direction: column; max-height: min(100%, 640px); }
+.picker .stages { overflow-y: auto; margin: 0 -4px 12px; padding: 0 4px; -webkit-overflow-scrolling: touch; }
+.picker h3 { display: flex; align-items: center; gap: 8px; margin: 10px 0 6px; font-size: 14px; font-weight: 900; }
+.picker h3 span { width: 16px; height: 16px; border-radius: 50%; background: linear-gradient(var(--a) 50%, var(--b) 50%); border: 2px solid var(--cocoa); flex: none; }
+.picker h3 small { margin-left: auto; font-size: 11px; color: var(--cocoa-soft); font-weight: 800; }
+.picker .grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.st { min-height: 48px; border: 2px solid var(--cocoa); border-radius: 12px; background: #fff; font-size: 16px; font-weight: 900; color: var(--cocoa); display: grid; place-items: center; padding: 2px 0; line-height: 1.1; }
+.st small { font-size: 11px; color: #a86f00; letter-spacing: -1px; }
+.st.now { background: var(--pink); color: #fff; box-shadow: 0 3px 0 var(--cocoa); }
+.st.now small { color: #fff; }
+.st.lock { background: #efe5de; color: #a8948a; border-color: #cdb9ae; }
+.st.lock small { color: inherit; }

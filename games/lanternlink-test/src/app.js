@@ -312,10 +312,11 @@
     }
     sfx.click();
     const litN = Logic.litLanterns(after);
-    if (litN > beforeLit) sfx.glow(litN);
+    if (litN > beforeLit) { sfx.glow(litN); if (!SHOT) window.Haptics && Haptics.buzz('tick'); }
     save();
     if (after.done) {
       sfx.solve();
+      if (!SHOT) window.Haptics && Haptics.buzz('big');
       justSolved = true;
       render();
     } else {

@@ -333,6 +333,7 @@
       } else if (v.type === 'melt') {
         addFx('puff', v.c, v.r, '<i></i><i></i><i></i><i></i><i></i><i></i>');
         sfx.melt(melts); melts += 1;
+        if (!SHOT) window.Haptics && Haptics.buzz('tick');
       } else if (v.type === 'place') {
         addFx('ring', v.c, v.r);
         sfx.place();
@@ -345,6 +346,7 @@
         addFx('bite', v.c, v.r, '');
       } else if (v.type === 'clear') {
         sfx.clear();
+        if (!SHOT) window.Haptics && Haptics.buzz('good');
       }
     }
   }
@@ -554,6 +556,7 @@
       meta = L.record(meta, run, run.date || today());
       meta[meta.active] = run;
       (run.phase === 'won' ? sfx.win : sfx.lose)();
+      if (run.phase === 'won' && !SHOT) window.Haptics && Haptics.buzz('big');
     }
   }
 

@@ -188,6 +188,7 @@
     const f = Logic.flavor(top.flavor);
     if (event.type === 'perfect') {
       Sfx.play('perfect', { pitch: 1 + Math.min(event.streak - 1, 8) * 0.06 });
+      if (!demo && window.Haptics) Haptics.buzz(event.streak >= 5 && event.streak % 5 === 0 ? 'big' : 'good');
       burst(topPos, ['#ffe27a', '#ffffff', f.color], 18);
       Kit3D.shake(stage, 0.08);
       pop(event.streak > 1 ? `${T.perfect} ×${event.streak}` : T.perfect, 'gold');
@@ -216,6 +217,7 @@
     }
     if (event.delivered) {
       Sfx.play('bell');
+      if (!demo && window.Haptics) Haptics.buzz('big');
       setTimeout(() => Sfx.play('win'), 300);
       world.hop();
       burst(topPos, ['#ff8fab', '#ffd166', '#86dcc6', '#b89ad6', '#ffffff'], 40);

@@ -217,9 +217,10 @@
         const tier = Math.max(L.GARDEN.indexOf(e.kind), L.SEA.indexOf(e.kind) + 1);
         Sfx.play('grow', { tier: tier + tierChain });
         tierChain += 1;
+        if (!demo && window.Haptics) Haptics.buzz(tierChain > 1 ? 'good' : 'tick');
         popText(e.at, `+${fmt(e.pts)} ${NAMES[e.kind]}`, tierChain > 1 ? 'chain' : '');
       },
-      festival: (e) => { Sfx.play('win'); banner(S.festival, 'fest'); popText(e.at, `+${fmt(e.pts)}`, 'chain'); },
+      festival: (e) => { Sfx.play('win'); if (!demo && window.Haptics) Haptics.buzz('big'); banner(S.festival, 'fest'); popText(e.at, `+${fmt(e.pts)}`, 'chain'); },
       trap: (e) => { Sfx.play('shell'); popText(e.cells[e.cells.length - 1], `${NAMES.shell}!`, 'sea'); },
       blow: () => Sfx.play('whoosh'),
       hop: () => { if (Math.random() < 0.35) Sfx.play('squawk'); },

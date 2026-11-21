@@ -452,7 +452,7 @@
       toast(TEXT.water);
       trail = [];
     }
-    if (result === 'cup') { sinking = 0.01; sfx.cup(); }
+    if (result === 'cup') { sinking = 0.01; sfx.cup(); if (!SHOT) window.Haptics && Haptics.buzz('good'); }
     const { state: next, holeOut } = L.applyShot(state, outcome, hole);
     state = next;
     save();
@@ -460,7 +460,7 @@
     if (result === 'cup') rest = { x: hole.cup.x, y: hole.cup.y };
     if (holeOut) {
       pendingOut = holeOut;
-      if (holeOut.ace) sfx.ace();
+      if (holeOut.ace) { sfx.ace(); if (!SHOT) window.Haptics && Haptics.buzz('big'); }
       setTimeout(() => showHoleOut(holeOut), result === 'cup' ? 650 : 250);
     }
     refresh();
@@ -574,6 +574,7 @@
       const g = L.ladderGoal(state.ladder.level - 1);
       goal = `<p class="note goal${g.hit ? ' hit' : ''}">${g.hit ? TEXT.milestone(state.ladder.level - 1) : TEXT.toMilestone(g.next, g.left)}</p>`;
       if (g.hit && !out.ace) setTimeout(sfx.ace, 120);
+      if (g.hit && !SHOT) window.Haptics && Haptics.buzz('big');
     }
     openSheet('hole', `${stamp(name, sub)}${goal}<button class="primary" id="goNext">${label}</button>`);
     $('goNext').addEventListener('click', advance);

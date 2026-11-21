@@ -450,3 +450,7 @@ body.shot .veil { position: absolute; }
   .grid { grid-auto-rows: minmax(50px, 76px); gap: 7px 6px; }
   .note { min-height: 50px; padding-top: 14px; padding-bottom: 6px; }
 }
+
+/* 진동 버튼까지 네 개가 되면 사이를 좁혀 사건 날짜가 잘리지 않게 한다. */
+.tools:has(.kk-vib) { gap: 4px; }
+.tools:has(.kk-vib) .icon { width: 40px; }

@@ -381,7 +381,34 @@
       flame.scale.set(1 + Math.sin(time * 23) * 0.1, 1.6 + Math.sin(time * 17) * 0.25, 1);
     }
 
+    // ---------- 단계 테마(하늘·받침·벽 색)와 움직이는 받침 ----------
+    const BASE_THEME = { sky: ['#ffcfc0', '#fff3e3'], plate: '#ffffff', lace: '#ffe0ea', wall: '#ffffff' };
+    let themeKey = '';
+    function setTheme(theme) {
+      const th = { ...BASE_THEME, ...(theme || {}) };
+      const k = [th.sky[0], th.sky[1], th.plate, th.lace, th.wall].join();
+      if (k === themeKey) return;
+      themeKey = k;
+      if (scene.background && scene.background.dispose) scene.background.dispose();
+      scene.background = Kit3D.canvasTexture(4, 256, (g, w, h) => {
+        const grad = g.createLinearGradient(0, 0, 0, h);
+        grad.addColorStop(0, th.sky[0]);
+        grad.addColorStop(1, th.sky[1]);
+        g.fillStyle = grad;
+        g.fillRect(0, 0, w, h);
+      });
+      if (scene.fog) scene.fog.color.set(th.sky[1]);
+      plate.material.color.set(th.plate);
+      lace.material.color.set(th.lace);
+      back.material.color.set(th.wall);
+    }
+    function setShift(x, z) {
+      stand.position.set(x, 0, z);
+      cake.position.set(x, 0, z);
+    }
+
     return {
+      setTheme, setShift,
       stage, scene, camera, cake, hover, bag, ring, ringMat, centerDot, topper, guest,
       PLATE_TOP, layerY, setLayers, paintLayer, scrap, buildGuest, update,
       hop() { guestHop = 1; },

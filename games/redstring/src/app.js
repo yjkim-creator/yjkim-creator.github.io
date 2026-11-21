@@ -437,6 +437,7 @@
       state.run = out.run;
       justSolved = out.group;
       Sfx.play('tie');
+      if (!demo && window.Haptics) Haptics.buzz('good');
       burst(cx, cy, THREADS[out.group], 22);
       popText(cx, cy - 10, T.solved, 'good');
       save();
@@ -472,6 +473,7 @@
     save();
     setTimeout(() => {
       Sfx.play(run.done === 'win' ? 'win' : 'lose');
+      if (run.done === 'win') if (!demo && window.Haptics) Haptics.buzz('big');
       sheet = 'result';
       render();
       if (run.done === 'win') setTimeout(() => {

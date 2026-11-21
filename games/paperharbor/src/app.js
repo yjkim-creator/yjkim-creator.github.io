@@ -489,7 +489,7 @@
         splash(hx, hy, 14, 'rgba(255,220,150,0.95)', t);
         floats.push({ text: T.bump, x: hx, y: hy, color: '#FFD27A', t0: t });
         refreshHud();
-        if (navigator.vibrate && !demo) try { navigator.vibrate(30); } catch { /* 진동 없는 기기 */ }
+        if (!demo && window.Haptics) Haptics.buzz('tick');
       }, 230);
     }
     hintId = null;
@@ -508,6 +508,7 @@
       }
       setTimeout(() => {
         Sfx.play('horn');
+        if (!demo && window.Haptics) Haptics.buzz('big');
         confetti(performance.now());
         overlay = 'win';
         renderOverlay();

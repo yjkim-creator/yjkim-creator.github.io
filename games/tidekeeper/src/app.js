@@ -341,14 +341,17 @@
     if (result.visitors && result.visitors.length) {
       showToast(T.newVisitor(T.visitors[result.visitors[0]][0]), 'visitor');
       setTimeout(sfx.visitor, 180);
+      if (sound) window.Haptics && Haptics.buzz('good');
     }
     if (result.daily) {
       showToast(T.taskDone, 'pearl');
       setTimeout(sfx.pearl, 360);
+      if (sound) window.Haptics && Haptics.buzz('big');
     }
     if (result.milestone && !(result.visitors && result.visitors.length) && !result.daily) {
       showToast(T.milestone(fmt(10 ** result.milestone)), 'pearl');
       setTimeout(sfx.pearl, 200);
+      if (sound) window.Haptics && Haptics.buzz('big');
     }
     save();
     return true;
@@ -627,7 +630,7 @@
       tx.append(el('span', '', p.done ? T.taskDone : `${T.task[p.id]} · ${p.have} / ${p.goal}`));
       today.append(tx);
       panel.append(today);
-      const snd = el('button', `btn toggle${soundOn ? ' on' : ''}`, `${T.sound} ${soundOn ? 'ON' : 'OFF'}`);
+      const snd = el('button', `btn toggle snd${soundOn ? ' on' : ''}`, `${T.sound} ${soundOn ? 'ON' : 'OFF'}`);
       snd.addEventListener('click', () => {
         soundOn = !soundOn;
         try { localStorage.setItem(SOUND_KEY, soundOn ? 'on' : 'off'); } catch { /* 무시 */ }
