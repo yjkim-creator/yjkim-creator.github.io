@@ -55,9 +55,9 @@ else window.addEventListener("load", () => setTimeout(startOnestore, 800));
   <script src="lib/three.min.js"></script>
   <script src="lib/kit3d.js"></script>
   <script src="lib/sfx.js"></script>
-  <script src="src/logic.js?v=7"></script>
-  <script src="src/scene.js?v=7"></script>
-  <script src="src/app.js?v=7"></script>
+  <script src="src/logic.js?v=9"></script>
+  <script src="src/scene.js?v=9"></script>
+  <script src="src/app.js?v=9"></script>
 <script src="src/leaderboard.js"></script>
 <script>window.Rank && Rank.setup(Object.assign({"game": "tiertop", "title": "층층 베이커리 · 최고 높이", "unit": "층", "max": 100000, "theme": {"bg": "rgba(79,49,39,.5)", "panel": "#fffdf8", "text": "#4f3127", "mute": "#8a6152", "accent": "#e2627f", "accentText": "#ffffff", "line": "rgba(79,49,39,.12)", "font": "'Trebuchet MS','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',system-ui,sans-serif"}, "tab": {"ko": "최고 높이", "en": "Tallest cake", "ja": "最高の高さ"}}, { read: function () { return +(JSON.parse(localStorage.getItem('tiertop-save-v1')||'{}').best)||0; }, boards: [Object.assign({"id": "stage", "game": "tiertop-stage", "max": 9999999, "unit": "", "tab": {"ko": "최고 단계", "en": "Best stage", "ja": "最高ステージ"}, "title": {"ko": "층층 베이커리 · 최고 도달 단계", "en": "Tiertop Bakery · Best stage", "ja": "つみつみケーキ屋さん · 最高ステージ"}}, { read: function () { return (function(s){var st=s.stage||{};var b=+st.best||0;var n=0;(st.stars||[]).forEach(function(x){n+=Math.max(0,Math.min(3,+x||0));});return b>0?b*1000+Math.min(999,n):0;})(JSON.parse(localStorage.getItem('tiertop-save-v1')||'{}')); }, format: function (n) { return (function(s){return Rank.lang==='en'?'Stage '+s:Rank.lang==='ja'?s+'ステージ':s+'단계';})(Math.floor(n/1000)); } })] }));</script>
 </body>
