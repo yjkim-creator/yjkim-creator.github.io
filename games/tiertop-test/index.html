@@ -5,7 +5,7 @@
   <meta name="theme-color" content="#ffcfc0">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <title>층층 베이커리</title>
-  <link rel="stylesheet" href="src/style.css?v=11">
+  <link rel="stylesheet" href="src/style.css?v=12">
   <script type="module" src="https://h5sdk.onestore.net/lib/v1.1.0/onestore-h5-sdk.min.js"></script>
   <script type="module">
 // 원스토어 앱 안에서 실행될 때 SDK와 연결합니다. 일반 브라우저에서는 아무 일도 하지 않습니다.
@@ -33,7 +33,11 @@ function startOnestore() {
 // 전면 광고: 자연스러운 쉬는 구간에서만, 2분 30초에 한 번 이하로 보여 줍니다.
 const AD_ID = "xWV78-EBP9-FCVD-Y8QK";
 const AD_GAP = 150000;
-window.onestoreAd = { atBreak() {} };
+window.onestoreAd = {
+  atBreak() {},
+  rewardReady: false,
+  showReward(done) { if (typeof done === "function") done(false); },
+};
 let adOpen = false;
 let adBusy = false;
 let adQuietUntil = 0;
@@ -42,20 +46,35 @@ function setupAds(sdk) {
   let last = Date.now();
   let busy = false;
   try { sdk.ads.loadInterstitial({ placementId: AD_ID }); } catch (e) {}
-  window.onestoreAd.atBreak = () => {
-    if (busy || Date.now() - last < AD_GAP) return;
+  // 전면 광고를 띄운다. opt-in 이면 150초 간격을 적용하지 않는다.
+  // 결과 status 가 없으면(예전 SDK) 닫힌 것으로 보고, failed·dismissed 만 실패다.
+  function present(optIn, done) {
+    if (busy || (!optIn && Date.now() - last < AD_GAP)) { if (done) done(false); return; }
     busy = true;
     adBusy = true;
-    sdk.ads.showInterstitialAsync({ placementId: AD_ID })
-      .catch(() => {})
-      .then(() => {
-        busy = false;
+    let settled = false;
+    const finish = (res, failed) => {
+      if (settled) return;
+      settled = true;
+      const status = res && res.status;
+      const ok = !failed && status !== "failed" && status !== "dismissed";
+      busy = false;
       adBusy = false;
       adQuietUntil = Date.now() + 800;
-        last = Date.now();
-        try { sdk.ads.loadInterstitial({ placementId: AD_ID }); } catch (e) {}
-      });
-  };
+      if (ok) last = Date.now();
+      try { sdk.ads.loadInterstitial({ placementId: AD_ID }); } catch (e) {}
+      if (done) done(ok);
+    };
+    try {
+      sdk.ads.showInterstitialAsync({ placementId: AD_ID }).then(
+        (res) => finish(res, false),
+        () => finish(null, true)
+      );
+    } catch (e) { finish(null, true); }
+  }
+  window.onestoreAd.atBreak = () => present(false);
+  window.onestoreAd.showReward = (done) => present(true, done);
+  window.onestoreAd.rewardReady = true;
 }
 if (document.readyState === "complete") setTimeout(startOnestore, 800);
 else window.addEventListener("load", () => setTimeout(startOnestore, 800));
@@ -67,9 +86,9 @@ else window.addEventListener("load", () => setTimeout(startOnestore, 800));
   <script src="lib/three.min.js"></script>
   <script src="lib/kit3d.js"></script>
   <script src="lib/sfx.js"></script>
-  <script src="src/logic.js?v=11"></script>
-  <script src="src/scene.js?v=11"></script>
-  <script src="src/app.js?v=11"></script>
+  <script src="src/logic.js?v=12"></script>
+  <script src="src/scene.js?v=12"></script>
+  <script src="src/app.js?v=12"></script>
 <script src="src/leaderboard.js"></script>
 <script>window.Rank && Rank.setup(Object.assign({"game": "tiertop", "title": "층층 베이커리 · 최고 높이", "unit": "층", "max": 100000, "theme": {"bg": "rgba(79,49,39,.5)", "panel": "#fffdf8", "text": "#4f3127", "mute": "#8a6152", "accent": "#e2627f", "accentText": "#ffffff", "line": "rgba(79,49,39,.12)", "font": "'Trebuchet MS','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',system-ui,sans-serif"}}, { read: function () { return +(JSON.parse(localStorage.getItem('tiertop-save-v1')||'{}').best)||0; } }));</script>
 </body>

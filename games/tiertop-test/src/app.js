@@ -19,6 +19,7 @@
     shop: '상점', holdStars: (n) => `별 ${n}`, gotStars: (n) => `별 ${n}개를 받았어요`, moreStars: (n) => `광고 보고 +${n} (3배)`,
     reviveUse: (n) => `1회 살리기 (${n})`, reviveBuy: (n) => `별 ${n}로 살리기`, giveUp: '그만하기', maxed: '최대',
     lv: (n, m) => `${n}/${m}`, owned: (n, m) => `보유 ${n}/${m}`, ad: '광고', adTitle: '별 3배', adWait: '잠시 후 받은 별이 3배가 돼요',
+    adFail: '지금은 광고를 불러오지 못했어요',
     wide: '넓은 시작', wideDesc: '시작 케이크가 한 단계씩 넓어져요', slow: '느린 시작', slowDesc: '처음 속도가 한 단계씩 느려져요',
     cushion: '여유 판정', cushionDesc: '딱 맞음이 한 단계씩 너그러워져요', reviveName: '1회 살리기', reviveDesc: '기울어진 직후, 한 판에 한 번 이어 쌓아요',
     devices: {
@@ -50,6 +51,7 @@
     shop: 'Shop', holdStars: (n) => `${n} stars`, gotStars: (n) => `You got ${n} stars`, moreStars: (n) => `Watch an ad for +${n} (3×)`,
     reviveUse: (n) => `Revive once (${n})`, reviveBuy: (n) => `Revive for ${n} stars`, giveUp: 'Give up', maxed: 'Max',
     lv: (n, m) => `Lv ${n}/${m}`, owned: (n, m) => `Owned ${n}/${m}`, ad: 'Ad', adTitle: 'Triple stars', adWait: 'Your stars will triple in a moment',
+    adFail: 'The ad could not be loaded',
     wide: 'Wider start', wideDesc: 'The first tier gets a little wider each level', slow: 'Slower start', slowDesc: 'The opening swing gets a little slower each level',
     cushion: 'Kinder perfects', cushionDesc: 'Perfect drops get a little more forgiving', reviveName: 'One revive', reviveDesc: 'Once a run, keep stacking right after a tip',
     devices: {
@@ -503,7 +505,8 @@
     const info = endInfo;
     const r = info.run;
     const pending = info.pending && offerRevive();
-    if (!pending && window.onestoreAd) window.onestoreAd.atBreak();
+    const offerBonus = info.committed && info.pay && !info.bonus;
+    if (!pending && !offerBonus && window.onestoreAd) window.onestoreAd.atBreak();
     const h = Logic.height(r);
     const st = info.stars || 0;
     const more = info.committed && r.cleared && r.stage < Logic.STAGE_CAP;
@@ -515,6 +518,7 @@
         <div class="stars">${[1, 2, 3].map((n) => `<i class="${n <= st ? 'on' : ''}"></i>`).join('')}</div>
         <dl><div><dt>${T.target}</dt><dd>${T.reached(h, r.target)}</dd></div><div><dt>${T.perfect}</dt><dd>${r.perfects}</dd></div><div><dt>★</dt><dd>${save.stage.purse}</dd></div></dl>
         ${info.committed && info.pay ? `<p class="goal">${info.bonus ? T.gotStars(info.pay * 3) : T.gotStars(info.pay)}</p>` : ''}
+        ${info.adFail ? `<p class="goal">${T.adFail}</p>` : ''}
         ${(info.unlocked || []).map((f) => `<p class="unlock"><span class="sw" style="--c:${f.color};--k:${f.cream}"><i></i></span>${T.unlocked(fname(f))}</p>`).join('')}
         ${info.committed && save.stage.best ? rankLine() : ''}
       </div>
@@ -533,15 +537,15 @@
     const buyBtn = $('#reviveBuy');
     const triple = $('#tripleBtn');
     const give = $('#giveUp');
-    if (nextBtn) nextBtn.addEventListener('click', (e) => { e.stopPropagation(); if (more) openStage(r.stage + 1); else startStage(r.stage); });
-    if (more) $('#stageRetry').addEventListener('click', (e) => { e.stopPropagation(); startStage(r.stage); });
+    if (nextBtn) nextBtn.addEventListener('click', (e) => { e.stopPropagation(); finishBreak(); if (more) openStage(r.stage + 1); else startStage(r.stage); });
+    if (more) $('#stageRetry').addEventListener('click', (e) => { e.stopPropagation(); finishBreak(); startStage(r.stage); });
     if (reviveBtn) reviveBtn.addEventListener('click', (e) => { e.stopPropagation(); useRevive(); });
     if (buyBtn) buyBtn.addEventListener('click', (e) => { e.stopPropagation(); buyReviveAndUse(); });
     if (triple) triple.addEventListener('click', (e) => { e.stopPropagation(); watchBonus(); });
     if (give) give.addEventListener('click', (e) => { e.stopPropagation(); commitStage(); showStageEnd(); });
     $('#endPick').addEventListener('click', (e) => { e.stopPropagation(); openPicker(); });
     $('#endShop').addEventListener('click', (e) => { e.stopPropagation(); openShop(); });
-    $('#stageMenu').addEventListener('click', (e) => { e.stopPropagation(); if (info.pending) commitStage(); Sfx.play('back'); showTitle(); });
+    $('#stageMenu').addEventListener('click', (e) => { e.stopPropagation(); if (info.pending) commitStage(); finishBreak(); Sfx.play('back'); showTitle(); });
     fillRank();
     paintHud();
   }
@@ -571,6 +575,7 @@
     if (!endInfo || endInfo.bonus || !endInfo.pay) return;
     endInfo.bonus = true;
     endInfo.watching = false;
+    endInfo.adFail = false;
     save = Logic.grantPurse(save, endInfo.pay * 2);
     writeSave();
     Sfx.play('coin');
@@ -584,26 +589,29 @@
     if (ok) claimBonus();
     else if (mode === 'end' && endInfo && endInfo.stage) showStageEnd();
   }
+  // 3배를 안 보고 결과 화면을 떠나면, 그때 평소의 전면 광고를 한 번 보여 준다.
+  function finishBreak() {
+    if (!endInfo || endInfo.bonus || endInfo.broke || endInfo.pending) return;
+    endInfo.broke = true;
+    try { if (window.onestoreAd) window.onestoreAd.atBreak(); } catch { /* 광고가 없어도 진행 */ }
+  }
   function watchBonus() {
     if (!endInfo || endInfo.bonus || endInfo.watching || !endInfo.pay) return;
     endInfo.watching = true;
+    endInfo.adFail = false;
+    const finish = (ok) => {
+      if (!ok && endInfo) endInfo.adFail = true;
+      closeAd(Boolean(ok));
+    };
     const native = window.AndroidAds && typeof window.AndroidAds.showRewarded === 'function';
     if (native) {
-      window.__tiertopOnReward = (ok) => closeAd(Boolean(ok));
-      try { window.AndroidAds.showRewarded(); return; } catch { window.__tiertopOnReward = null; endInfo.watching = false; }
+      window.__tiertopOnReward = finish;
+      try { window.AndroidAds.showRewarded(); return; } catch { window.__tiertopOnReward = null; }
     }
-    const total = 4;
-    let left = total;
-    const paint = () => {
-      ad.innerHTML = `<div class="paper"><p class="date">${T.ad}</p><h2>${T.adTitle}</h2><p class="next">${T.adWait}</p><div class="bar"><i style="width:${Math.round(((total - left) / total) * 100)}%"></i></div><p class="tall"><b>${left}</b></p></div>`;
-    };
-    paint();
-    ad.classList.add('open');
-    adTick = setInterval(() => {
-      left -= 1;
-      if (left <= 0) closeAd(true);
-      else paint();
-    }, 1000);
+    if (window.onestoreAd && window.onestoreAd.rewardReady && typeof window.onestoreAd.showReward === 'function') {
+      try { window.onestoreAd.showReward(finish); return; } catch { /* 아래에서 실패 처리 */ }
+    }
+    finish(false);
   }
   function shopRow(id, title, desc) {
     const purse = save.stage.purse;
@@ -862,6 +870,7 @@
     if (mode === 'title' && $('#introGo')) { Sfx.play('back'); world.setTheme(null); showTitle(); return true; }
     if (mode === 'end') {
       if (endInfo && endInfo.pending) commitStage();
+      finishBreak();
       world.topper.visible = false;
       syncCake();
       showTitle();
