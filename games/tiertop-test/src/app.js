@@ -211,7 +211,8 @@
     srun = null;
     world.setTheme(null);
     world.setShift(0, 0);
-    if (!run || run.over) run = Logic.newRun(order);
+    if (!run || run.over) run = Logic.newRun(order, null, save.stage.up);
+    else run = Logic.equipRun(run, save.stage.up);
     mode = 'play';
     swingT = 0;
     enter = 1;
@@ -309,16 +310,35 @@
   let squashT = 0;
 
   function endRun() {
-    if (demo || !run) return;
+    if (demo || !run || mode !== 'play') return;
+    const canRevive = run.over && !run.revived && (save.stage.revive > 0 || save.stage.purse >= Logic.REVIVE_COST);
+    if (canRevive) {
+      endInfo = { run, pending: true, save, unlocked: [], newBest: false };
+      mode = 'end';
+      showEnd();
+      return;
+    }
+    commitDaily();
+  }
+  function commitDaily(show) {
+    if (endInfo && endInfo.committed) {
+      if (show !== false) showEnd();
+      return;
+    }
+    if (!run) return;
     const finished = run;
     const result = Logic.recordRun(save, finished, today);
     save = result.save;
-    endInfo = { run: finished, ...result };
+    endInfo = { run: finished, ...result, pending: false, committed: true };
     run = null;
     writeSave();
     mode = 'end';
-    showEnd();
-    if (finished.delivered) placeTopper(finished);
+    if (show === false) {
+      if (window.Rank && !/shot=/.test(location.hash)) Rank.submit(Logic.height(finished));
+    } else {
+      showEnd();
+      if (finished.delivered) placeTopper(finished);
+    }
   }
 
   function offerRevive() {
@@ -407,9 +427,10 @@
 
   function showEnd() {
     const info = endInfo;
-    if (window.onestoreAd) window.onestoreAd.atBreak();
+    const pending = Boolean(info.pending && run && run.over && !run.revived);
+    if (!pending && window.onestoreAd) window.onestoreAd.atBreak();
     const h = Logic.height(info.run);
-    if (window.Rank && !/shot=/.test(location.hash)) Rank.submit(h);
+    if (!pending && window.Rank && !/shot=/.test(location.hash)) Rank.submit(h);
     const st = Logic.stars(info.run);
     sheet.innerHTML = `
       <div class="receipt end">
@@ -422,16 +443,25 @@
         <p class="next">${nextLine()}</p>
         ${save.stage.best ? rankLine() : ''}
       </div>
-      <button class="go" id="againBtn">${T.again}</button>
+      ${pending && save.stage.revive > 0 ? `<button class="go" id="reviveBtn">${T.reviveUse(save.stage.revive)}</button>` : ''}
+      ${pending && save.stage.revive < 1 ? `<button class="go" id="reviveBuy">${T.reviveBuy(Logic.REVIVE_COST)}</button>` : ''}
+      ${pending ? `<button class="ghost" id="giveUp">${T.giveUp}</button>` : `<button class="go" id="againBtn">${T.again}</button>`}
       <button class="ghost" data-rank-open>${/^en/i.test(navigator.language || '') ? '🏆 Leaderboard' : '🏆 전국 랭킹'}</button>
       <div class="row"><button class="ghost" id="endBook">${T.book}</button><button class="ghost" id="endMenu">${T.menu}</button></div>`;
     sheet.classList.add('open');
     if (info.unlocked.length) setTimeout(() => Sfx.play('power'), 400);
     if (info.run.delivered) Sfx.play('coin');
-    $('#againBtn').addEventListener('click', (e) => { e.stopPropagation(); run = null; startRun(); });
+    const againBtn = $('#againBtn');
+    if (againBtn) againBtn.addEventListener('click', (e) => { e.stopPropagation(); run = null; startRun(); });
+    const endRevive = $('#reviveBtn');
+    const endBuy = $('#reviveBuy');
+    const endGive = $('#giveUp');
+    if (endRevive) endRevive.addEventListener('click', (e) => { e.stopPropagation(); useRevive(); });
+    if (endBuy) endBuy.addEventListener('click', (e) => { e.stopPropagation(); buyReviveAndUse(); });
+    if (endGive) endGive.addEventListener('click', (e) => { e.stopPropagation(); commitDaily(); });
     fillRank();
     $('#endBook').addEventListener('click', (e) => { e.stopPropagation(); openBook(); });
-    $('#endMenu').addEventListener('click', (e) => { e.stopPropagation(); Sfx.play('back'); world.topper.visible = false; syncCake(); showTitle(); });
+    $('#endMenu').addEventListener('click', (e) => { e.stopPropagation(); if (info.pending) commitDaily(false); Sfx.play('back'); world.topper.visible = false; syncCake(); showTitle(); });
     paintHud();
   }
 
@@ -550,16 +580,19 @@
     paintHud();
   }
   function useRevive() {
-    const next = Logic.continueRun(srun);
+    const stage = playMode === 'stage';
+    const next = Logic.continueRun(stage ? srun : run);
     const paid = Logic.takeRevive(save);
     if (!next || !paid) return;
     save = paid;
-    srun = next;
+    if (stage) srun = next;
+    else run = next;
     endInfo = null;
     mode = 'play';
     falling = null;
     enter = 1;
     sheet.classList.remove('open');
+    hint.classList.add('show');
     writeSave();
     syncCake();
     paintHud();
@@ -651,6 +684,8 @@
         const next = Logic.buy(save, btn.dataset.buy);
         if (!next) return;
         save = next;
+        if (run && !run.over) run = Logic.equipRun(run, save.stage.up);
+        if (srun && !srun.over) srun = Logic.equipRun(srun, save.stage.up);
         writeSave();
         Sfx.play('coin');
         openShop();
@@ -718,6 +753,7 @@
     Sfx.play('back');
     if (wasShop && mode === 'title') showTitle();
     else if (wasShop && mode === 'end' && endInfo && endInfo.stage) showStageEnd();
+    else if (wasShop && mode === 'end' && endInfo) showEnd();
     return true;
   }
 
@@ -869,7 +905,10 @@
     if (mode === 'play' && !demo) { writeSave(); Sfx.play('back'); syncCake(); showTitle(); return true; }
     if (mode === 'title' && $('#introGo')) { Sfx.play('back'); world.setTheme(null); showTitle(); return true; }
     if (mode === 'end') {
-      if (endInfo && endInfo.pending) commitStage();
+      if (endInfo && endInfo.pending) {
+        if (playMode === 'stage') commitStage();
+        else commitDaily(false);
+      }
       finishBreak();
       world.topper.visible = false;
       syncCake();

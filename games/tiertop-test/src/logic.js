@@ -13,7 +13,7 @@
   const REVIVE_MAX = 3;
   const UPGRADES = {
     wide: { max: 5, step: 0.05, costs: [4, 8, 12, 18, 24] },
-    slow: { max: 5, step: 0.05, costs: [4, 8, 12, 18, 24] },
+    slow: { max: 5, step: 0.16, costs: [4, 8, 12, 18, 24] },
     cushion: { max: 3, step: 0.012, costs: [8, 14, 22] },
   };
   function slackOf(run) {
@@ -90,37 +90,48 @@
 
   // ---------- 흔들림: 위층 가운데를 지나가는 진자. 각도는 천천히 돈다 ----------
   // 진자는 한 번 흔들릴 때마다 반드시 가운데를 두 번 지나므로 딱 맞출 기회가 늘 있다.
-  function swing(level, seed = 0) {
+  function swing(level, seed = 0, up) {
     const lv = Math.max(0, level);
+    const slow = up && up.slow ? up.slow : 0;
+    // 느린 시작: 처음은 단계마다 16% 느리게, 8층에 걸쳐 원래 속도로 돌아온다.
+    const fade = Math.min(1, lv / 8);
+    const start = slow ? Math.max(0.42, 1 - slow * UPGRADES.slow.step) : 1;
+    const factor = start + (1 - start) * fade;
     return {
       amp: Math.min(2.4, 1.7 + lv * 0.025),
-      speed: Math.min(3, 1.2 + lv * 0.045), // 라디안/초
+      speed: Math.min(3, 1.2 + lv * 0.045) * factor, // 라디안/초
       turn: 0.32 + ((seed % 7) * 0.03),
       phase: (seed % 360) * (Math.PI / 180),
     };
   }
-  function dropperOffset(t, level, seed) {
-    const s = swing(level, seed);
+  function dropperOffset(t, level, seed, up) {
+    const s = swing(level, seed, up);
     const along = s.amp * Math.sin(s.speed * t);
     const angle = s.phase + s.turn * t;
     return { x: along * Math.cos(angle), z: along * Math.sin(angle) };
   }
 
   // ---------- 한 판 ----------
-  function newRun(order, flavorIds) {
+  const WIDE_CAP = BASE_R + UPGRADES.wide.max * UPGRADES.wide.step;
+  function newRun(order, flavorIds, up) {
     const ids = flavorIds && flavorIds.length ? flavorIds : order.flavors;
+    const load = normalizeUp(up);
+    const r = Math.min(WIDE_CAP, Math.round((BASE_R + load.wide * UPGRADES.wide.step) * 1000) / 1000);
     return {
+      mode: 'daily',
       order: order.key,
       target: order.target,
       seed: order.seed,
       flavors: ids.slice(),
-      layers: [{ x: 0, z: 0, r: BASE_R, flavor: ids[0] }],
+      layers: [{ x: 0, z: 0, r, flavor: ids[0] }],
       score: 0,
       streak: 0,
       bestStreak: 0,
       perfects: 0,
       over: false,
       delivered: false,
+      up: load,
+      revived: false,
     };
   }
   const top = (run) => run.layers[run.layers.length - 1];
@@ -139,7 +150,7 @@
     if (d <= slackOf(run)) {
       const streak = run.streak + 1;
       const grow = streak % GROW_EVERY === 0;
-      const cap = run.mode === 'stage' ? run.layers[0].r : BASE_R;
+      const cap = run.layers[0].r;
       const r = (grow ? Math.min(cap, t.r + GROW) : t.r) - shrinkOf(run);
       if (r < MIN_R) return { run: { ...next, over: true, streak: 0 }, event: { type: 'miss', d, at: { x: at.x, z: at.z }, r: t.r, flavor } };
       next.layers.push({ x: t.x, z: t.z, r, flavor });
@@ -257,10 +268,11 @@
     const layers = raw.layers.slice(0, 2000);
     if (!layers.length) return null;
     for (const l of layers) {
-      if (!l || ![l.x, l.z, l.r].every(Number.isFinite) || l.r < MIN_R || l.r > BASE_R || Math.hypot(l.x, l.z) > 5 || !ids.has(l.flavor)) return null;
+      if (!l || ![l.x, l.z, l.r].every(Number.isFinite) || l.r < MIN_R || l.r > WIDE_CAP || Math.hypot(l.x, l.z) > 5 || !ids.has(l.flavor)) return null;
     }
-    const run = newRun(order);
+    const run = newRun(order, null, raw.up);
     run.layers = layers.map((l) => ({ x: l.x, z: l.z, r: l.r, flavor: l.flavor }));
+    run.revived = raw.revived === true;
     run.score = num(raw.score);
     run.streak = num(raw.streak);
     run.bestStreak = Math.max(run.streak, num(raw.bestStreak));
@@ -430,7 +442,9 @@
 
   // 흔들림 각: 박자(rubato)는 빨라졌다 느려지지만 늘 앞으로만 간다(되돌아가지 않으므로 가운데를 반드시 지난다).
   function stageTheta(spec, h, t) {
-    const w = spec.speed + Math.min(0.3, h * 0.01);
+    const full = spec.speedFull || spec.speed;
+    const fade = spec.slowLv ? Math.min(1, h / 8) : 1;
+    const w = spec.speed + (full - spec.speed) * fade + Math.min(0.3, h * 0.01);
     return w * t + (spec.rubato ? spec.rubato * Math.sin(spec.rubatoF * t) : 0);
   }
   function stageAxis(spec, t) {
@@ -482,9 +496,12 @@
     const slow = up && up.slow ? up.slow : 0;
     if (!wide && !slow) return spec;
     const next = { ...spec };
-    if (wide) next.baseR = Math.min(BASE_R, Math.round((spec.baseR + wide * UPGRADES.wide.step) * 1000) / 1000);
+    if (wide) next.baseR = Math.min(WIDE_CAP, Math.round((spec.baseR + wide * UPGRADES.wide.step) * 1000) / 1000);
     if (slow) {
-      next.speed = Math.max(0.72, Math.round((spec.speed - slow * UPGRADES.slow.step) * 1000) / 1000);
+      const start = Math.max(0.42, 1 - slow * UPGRADES.slow.step);
+      next.slowLv = slow;
+      next.speedFull = spec.speed;
+      next.speed = Math.max(0.5, Math.round(spec.speed * start * 1000) / 1000);
       if (next.fog) {
         next.fogP = (1.618 * Math.PI) / next.speed;
         next.fog = Math.max(spec.fog, 1 - 0.5 / next.fogP);
@@ -510,7 +527,7 @@
 
   // 지금 손을 떼면 위층 가운데에서 얼마나 떨어진 곳에 닿는지(케이크 기준). 오늘의 주문은 예전과 똑같다.
   function landingAt(run, t) {
-    if (run.mode !== 'stage') return dropperOffset(t, height(run), run.seed);
+    if (run.mode !== 'stage') return dropperOffset(t, height(run), run.seed, run.up);
     const spec = playSpec(run);
     const o = stageOffset(spec, height(run), t);
     const w = stageWind(spec, run.layers.length, t);
@@ -528,7 +545,7 @@
   }
   // 화면에 그릴 짤주머니 위치(위층 가운데 기준, 바람 전)
   function hoverAt(run, t) {
-    return run.mode === 'stage' ? stageOffset(playSpec(run), height(run), t) : dropperOffset(t, height(run), run.seed);
+    return run.mode === 'stage' ? stageOffset(playSpec(run), height(run), t) : dropperOffset(t, height(run), run.seed, run.up);
   }
   function plateShift(run, t) {
     return run && run.mode === 'stage' ? stageSlide(playSpec(run), t) : { x: 0, z: 0 };
@@ -595,8 +612,21 @@
     return { ...s, stage: { ...s.stage, revive: s.stage.revive - 1 } };
   }
   function continueRun(run) {
-    if (!run || run.mode !== 'stage' || !run.over || run.cleared || run.revived) return null;
+    if (!run || !run.over || run.revived) return null;
+    if (run.mode === 'stage' && run.cleared) return null;
     return { ...run, over: false, revived: true, streak: 0 };
+  }
+  // 상점에서 산 강화를 이미 쌓던 판에도 붙인다. 아직 첫 층만 있으면 시작 폭도 다시 맞춘다.
+  function equipRun(run, up) {
+    if (!run) return run;
+    const load = normalizeUp(up);
+    const next = { ...run, up: load };
+    if (height(next) === 0 && next.layers && next.layers[0]) {
+      const base = next.mode === 'stage' ? stageSpec(next.stage).baseR : BASE_R;
+      const r = Math.min(WIDE_CAP, Math.round((base + load.wide * UPGRADES.wide.step) * 1000) / 1000);
+      next.layers = [{ ...next.layers[0], r }];
+    }
+    return next;
   }
 
   // 단계 판이 끝났을 때 기록을 더한다.
@@ -627,7 +657,7 @@
   const logic = {
     FALL_T, STAGE_CAP, STAGE_MAIN, CHAPTERS, chapterOf, stageSpec, stageOffset, stageWind, stageSlide, stageVisible, stageAmp, newStageRun, landingAt, hoverAt, plateShift,
     perfectWindows, nextPerfectTime, stageStars, totalStageStars, stageRankScore, stageUnlocked, recordStage, sanitizeStage,
-    REVIVE_COST, REVIVE_MAX, UPGRADES, slackOf, tune, playSpec, stagePay, grantPurse, buy, takeRevive, continueRun,
+    REVIVE_COST, REVIVE_MAX, UPGRADES, slackOf, tune, playSpec, stagePay, grantPurse, buy, takeRevive, continueRun, equipRun,
     perfectsToNextStar,
     BASE_R, LAYER_H, PERFECT, MIN_R, GROW_EVERY, FLAVORS, CUSTOMERS,
     dayKey, hash, rng, unlockedFlavors, nextUnlock, dailyOrder, swing, dropperOffset,
