@@ -18,7 +18,8 @@ window.onerror = function (msg, src, line) { if (!/debug/.test(location.search))
 [hidden]{display:none!important}
 html,body{margin:0;height:100%;background:#05010d;overflow:hidden;color:#fff;font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans KR",sans-serif}
 canvas{position:fixed;inset:0;display:block}
-#vig,#boostfx{position:fixed;inset:0;pointer-events:none;z-index:1}
+#vig,#boostfx,#flyfx{position:fixed;inset:0;pointer-events:none;z-index:1}
+#flyfx{opacity:0;background:radial-gradient(ellipse at 50% 58%,rgba(255,224,102,0) 50%,rgba(255,170,40,.4) 100%)}
 #vig{background:radial-gradient(ellipse at 50% 55%,rgba(0,0,0,0) 45%,rgba(0,0,0,.6) 100%)}
 #boostfx{opacity:0;background:radial-gradient(ellipse at 50% 55%,rgba(0,229,255,0) 55%,rgba(0,229,255,.45) 100%)}
 button{font:inherit;color:inherit;cursor:pointer}
@@ -59,6 +60,14 @@ button{font:inherit;color:inherit;cursor:pointer}
 #spd{font:900 italic 26px/1 system-ui,sans-serif;font-variant-numeric:tabular-nums;text-shadow:0 0 12px var(--cyan)}
 #spd small{font-size:12px;opacity:.7;margin-left:3px;letter-spacing:1px}
 #dist{font:700 11px/1.4 system-ui,sans-serif;letter-spacing:2px;opacity:.6}
+#fly{display:flex;align-items:center;gap:7px;width:max-content;margin:8px auto 0;padding:5px 12px 5px 9px;border-radius:16px;
+  background:rgba(24,10,0,.6);border:1px solid rgba(255,224,102,.65);box-shadow:0 0 16px rgba(255,170,40,.45),inset 0 0 10px rgba(255,170,40,.2)}
+#fly svg{width:20px;height:20px;fill:var(--yellow);filter:drop-shadow(0 0 5px #ff9a00)}
+#flyBar{width:92px;height:6px;border-radius:3px;background:rgba(255,255,255,.16);overflow:hidden}
+#flyBar i{display:block;height:100%;background:linear-gradient(90deg,#ff7a1a,#ffe066 60%,#fff);transform-origin:left;box-shadow:0 0 8px #ffb400}
+#flyT{min-width:26px;text-align:left;font:900 italic 14px/1 system-ui,sans-serif;font-variant-numeric:tabular-nums;text-shadow:0 0 8px #ff9a00}
+#fly.low{animation:flyLow .24s steps(2) infinite}
+@keyframes flyLow{50%{opacity:.4}}
 
 #cd{position:fixed;left:0;right:0;top:34%;z-index:4;text-align:center;font:900 italic 96px/1 system-ui,sans-serif;pointer-events:none;
   color:#fff;text-shadow:0 0 24px var(--pink),0 0 60px var(--pink)}
@@ -162,7 +171,7 @@ else window.addEventListener("load", () => setTimeout(startOnestore, 800));
 </head>
 <body>
 <canvas id="c"></canvas>
-<div id="vig"></div><div id="boostfx"></div>
+<div id="vig"></div><div id="boostfx"></div><div id="flyfx"></div>
 
 <div id="touch" hidden>
   <div class="steer" id="stL"><svg viewBox="0 0 24 24"><path d="M15.5 4 7.5 12l8 8 1.5-1.5L10.5 12 17 5.5z"/></svg></div>
@@ -173,7 +182,8 @@ else window.addEventListener("load", () => setTimeout(startOnestore, 800));
 <div id="hud" hidden>
   <div class="top">
     <div id="hearts"></div>
-    <div id="scoreBox"><div id="score">0</div><div id="mult">x1</div><div id="combo"><i></i></div></div>
+    <div id="scoreBox"><div id="score">0</div><div id="mult">x1</div><div id="combo"><i></i></div>
+      <div id="fly" hidden><svg viewBox="0 0 24 24"><path d="M2 6c6-3 12-2 20 2-3 .6-5 1.6-6.4 3.4 1.8-.2 3.2 0 4.8.8-2.8 2-5.6 2.8-8.6 2.2.9.8 1.4 1.7 1.7 2.8C8 17 4 13.400 2 6z"/></svg><span id="flyBar"><i></i></span><b id="flyT">4.0</b></div></div>
     <button id="pauseBtn" aria-label="일시정지"><svg viewBox="0 0 24 24"><path d="M6 4h4v16H6zm8 0h4v16h-4z"/></svg></button>
   </div>
   <div id="speedo"><div id="spd">0<small>KM/H</small></div><div id="dist">0.00 KM</div></div>
@@ -193,6 +203,7 @@ else window.addEventListener("load", () => setTimeout(startOnestore, 800));
     <span>◀ ▶ 화면 왼쪽 · 오른쪽을 눌러 핸들 조작</span>
     <span>⚡ 니트로 버튼을 누르고 있으면 부스트</span>
     <span>차를 아슬아슬하게 스쳐 추월하면 콤보 + 니트로 충전</span>
+    <span>노란 날개는 4초 비행 · 길 위 점프대는 짧게 도약</span>
   </div>
   <div class="toggles"><button class="tgl" data-k="snd">🔊 효과음</button><button class="tgl" data-k="mus">🎵 음악</button><button class="tgl" data-k="vib">📳 진동</button></div>
 </div>
@@ -258,6 +269,9 @@ const MAXS = SEG * 60;           // 기본 최고 속도(월드 단위/초)
 const M_PER_U = 0.0055;          // 월드 단위 → 미터
 const ZONE_M = 2200;             // 구역 길이(미터)
 const BOOST = 1.45;
+const FLY_T = 4;                  // 날개 아이템 체공(초)
+const HOP_T = 0.82;               // 점프대 도약(초)
+const PAD_N = 8;                  // 점프대 앞 유도 패드 길이(세그먼트)
 const camDepth = 1 / Math.tan(50 * Math.PI / 180);
 
 const ZONES = [
@@ -621,13 +635,68 @@ function makeChevron(dir) {
   g.restore();
   return c;
 }
-function makeOrb(col, kind) {
-  const [c, g] = cnv(128, 128);
-  const gr = g.createRadialGradient(64, 64, 4, 64, 64, 64); gr.addColorStop(0, '#fff'); gr.addColorStop(0.3, col); gr.addColorStop(1, 'rgba(0,0,0,0)');
-  g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
-  g.fillStyle = '#fff';
-  if (kind === 'bolt') { g.beginPath(); g.moveTo(70, 34); g.lineTo(46, 68); g.lineTo(62, 68); g.lineTo(56, 96); g.lineTo(82, 58); g.lineTo(66, 58); g.closePath(); g.fill(); }
-  else { g.fillRect(56, 40, 16, 48); g.fillRect(40, 56, 48, 16); }
+// 아이템 토큰. 가운데 원판(core)은 그대로 두고 바깥 링(ring)만 자이로처럼 돌린다.
+// 빛기둥(beam)과 바닥 빛(halo)은 멀리서도 차선이 읽히게 한다.
+function tokenIcon(g, kind) {
+  g.beginPath();
+  if (kind === 'bolt') { g.moveTo(8, -36); g.lineTo(-22, 6); g.lineTo(-3, 6); g.lineTo(-10, 38); g.lineTo(22, -8); g.lineTo(3, -8); g.closePath(); }
+  else if (kind === 'heart') { g.moveTo(0, 30); g.bezierCurveTo(-46, -2, -32, -40, 0, -14); g.bezierCurveTo(32, -40, 46, -2, 0, 30); }
+  else {   // 위로 솟는 화살과 양옆으로 펼친 날개
+    g.moveTo(0, -38); g.lineTo(10, -20); g.lineTo(4, -20); g.lineTo(4, 22); g.lineTo(0, 30); g.lineTo(-4, 22); g.lineTo(-4, -20); g.lineTo(-10, -20); g.closePath();
+    for (const s of [-1, 1]) {
+      g.moveTo(s * 8, 2); g.quadraticCurveTo(s * 22, -20, s * 47, -15); g.lineTo(s * 39, -5); g.lineTo(s * 45, -1);
+      g.lineTo(s * 34, 6); g.lineTo(s * 38, 11); g.lineTo(s * 24, 14); g.lineTo(s * 8, 17); g.closePath();
+    }
+  }
+  g.fill();
+}
+function makeToken(col, kind) {
+  const S = 192, m = S / 2, cc = hex(col);
+  const [core, g] = cnv(S, S);
+  let gr = g.createRadialGradient(m, m, 20, m, m, m);
+  gr.addColorStop(0, rgb(cc, 0.6)); gr.addColorStop(0.5, rgb(cc, 0.18)); gr.addColorStop(1, rgb(cc, 0));
+  g.fillStyle = gr; g.fillRect(0, 0, S, S);
+  gr = g.createRadialGradient(m, m - 18, 4, m, m, 52);
+  gr.addColorStop(0, rgb(mixc(cc, [12, 4, 28], 0.5))); gr.addColorStop(1, '#0a0418');
+  g.fillStyle = gr; g.beginPath(); g.arc(m, m, 50, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = rgb(cc, 0.9); g.lineWidth = 3; g.stroke();
+  g.save(); g.translate(m, m); g.shadowColor = col; g.shadowBlur = 14; g.fillStyle = '#fff'; tokenIcon(g, kind); g.restore();
+  const [ring, r] = cnv(S, S);
+  r.save(); r.shadowColor = col; r.shadowBlur = 14; r.strokeStyle = col; r.lineWidth = 7;
+  r.beginPath(); r.arc(m, m, 70, 0, Math.PI * 2); r.stroke(); r.restore();
+  r.strokeStyle = 'rgba(255,255,255,.9)'; r.lineWidth = 2.5;
+  for (const a0 of [-2.6, 0.55]) { r.beginPath(); r.arc(m, m, 70, a0, a0 + 1.5); r.stroke(); }
+  const [beam, b] = cnv(48, 256);
+  gr = b.createLinearGradient(0, 0, 0, 256); gr.addColorStop(0, rgb(cc, 0)); gr.addColorStop(1, rgb(cc, 0.75));
+  b.fillStyle = gr; b.fillRect(0, 0, 48, 256);
+  b.globalCompositeOperation = 'destination-in';
+  gr = b.createLinearGradient(0, 0, 48, 0); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.5, '#000'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  b.fillStyle = gr; b.fillRect(0, 0, 48, 256);
+  const [halo, h] = cnv(160, 48);
+  h.translate(80, 24); h.scale(1, 0.3);
+  gr = h.createRadialGradient(0, 0, 4, 0, 0, 80); gr.addColorStop(0, rgb(cc, 0.8)); gr.addColorStop(1, rgb(cc, 0));
+  h.fillStyle = gr; h.beginPath(); h.arc(0, 0, 80, 0, Math.PI * 2); h.fill();
+  return { core, ring, beam, halo };
+}
+// 점프대 끝에 서는 킥커
+function makeRamp() {
+  const [c, g] = cnv(240, 100);
+  const body = () => { g.beginPath(); g.moveTo(8, 96); g.lineTo(40, 22); g.lineTo(200, 22); g.lineTo(232, 96); g.closePath(); };
+  const gr = g.createLinearGradient(0, 22, 0, 96); gr.addColorStop(0, '#3a2600'); gr.addColorStop(1, '#0d0612');
+  body(); g.fillStyle = gr; g.fill();
+  g.save(); body(); g.clip();
+  g.fillStyle = '#ffe066'; g.shadowColor = '#ff9a00'; g.shadowBlur = 10;
+  for (let i = 0; i < 2; i++) {
+    const y = 40 + i * 26;
+    g.beginPath(); g.moveTo(120, y); g.lineTo(62, y + 22); g.lineTo(84, y + 22); g.lineTo(120, y + 9); g.lineTo(156, y + 22); g.lineTo(178, y + 22); g.closePath(); g.fill();
+  }
+  g.restore();
+  g.save(); g.shadowColor = '#ffb400'; g.shadowBlur = 14; g.lineCap = 'round';
+  g.strokeStyle = '#ff9a00'; g.lineWidth = 3;
+  g.beginPath(); g.moveTo(8, 96); g.lineTo(40, 22); g.moveTo(232, 96); g.lineTo(200, 22); g.stroke();
+  g.strokeStyle = '#fff3b0'; g.lineWidth = 5;
+  g.beginPath(); g.moveTo(40, 22); g.lineTo(200, 22); g.stroke();
+  g.restore();
   return c;
 }
 function buildSprites() {
@@ -645,7 +714,8 @@ function buildSprites() {
   SPR.palms = [makePalm('#ff4fd8'), makePalm('#00e5ff')];
   SPR.boards = [['NITRO', '#00e5ff'], ['SURGE', '#ff2bd6'], ['NO BRAKES', '#ffe066'], ['FULL SEND', '#39ff9f'], ['∞ KM', '#ff7a1a'], ['GO FAST', '#ff2bd6']].map(([t, c2]) => makeBoard(t, c2));
   SPR.chevL = makeChevron(-1); SPR.chevR = makeChevron(1);
-  SPR.orb = makeOrb('#00e5ff', 'bolt'); SPR.heart = makeOrb('#ff2bd6', 'plus');
+  SPR.tokens = { orb: makeToken('#00e5ff', 'bolt'), heart: makeToken('#ff2bd6', 'heart'), wing: makeToken('#ffe066', 'wing') };
+  SPR.ramp = makeRamp();
 }
 
 // ── 트랙 ──
@@ -696,9 +766,17 @@ function buildTrack() {
     const cu = segments[i].curve;
     if (Math.abs(cu) > 3) segments[i].sprites.push({ img: cu > 0 ? SPR.chevR : SPR.chevL, x: cu > 0 ? -1.18 : 1.18, w: 0.32 });
   }
-  // 니트로·수리 아이템
+  // 니트로·수리·날개. 점프대는 먹히지 않고 밟을 때마다 짧게 띄운다.
   for (let i = 250; i < L - 50; i += 60 + Math.floor(rnd() * 90)) {
-    segments[i].pickups.push({ z: i * SEG + SEG / 2, x: LANES[Math.floor(rnd() * 3)], type: rnd() < 0.07 ? 'heart' : 'orb', lap: -1 });
+    const roll = rnd();
+    const type = roll < 0.07 ? 'heart' : roll < 0.18 ? 'wing' : 'orb';
+    segments[i].pickups.push({ z: i * SEG + SEG / 2, x: LANES[Math.floor(rnd() * 3)], type, lap: -1 });
+  }
+  for (let i = 420; i < L - 80; i += 240 + Math.floor(rnd() * 180)) {
+    if (segments[i].pickups.length) continue;
+    const x = LANES[Math.floor(rnd() * 3)];
+    segments[i].pickups.push({ z: i * SEG + SEG / 2, x, type: 'ramp', lap: -1 });
+    for (let k = 0; k < PAD_N; k++) segments[i - PAD_N + k].pad = { x, k };   // 킥커까지 이어지는 유도 패드
   }
 }
 const segAt = (z) => segments[Math.floor(z / SEG) % segments.length];
@@ -995,6 +1073,16 @@ const Snd = {
     } else if (name === 'go') {
       this.chime([81, 85, 88, 93], t, 0, 0.12, 'triangle');
       this.whoosh(t, 400, 3000, 800, 0.5, 0.4);
+    } else if (name === 'fly') {
+      this.whoosh(t, 240, 2600, 700, 0.7, 0.5);
+      this.chime([86, 91, 98, 103], t, 0.055, 0.11, 'triangle');
+    } else if (name === 'hop') {
+      this.whoosh(t, 380, 1700, 480, 0.28, 0.38);
+    } else if (name === 'land') {
+      this.whoosh(t, 200, 80, 50, 0.32, 0.42);
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(46, t + 0.22);
+      this.env(g, t, 0.004, 0.55, 0.24); o.connect(g); g.connect(this.fx); o.start(t); o.stop(t + 0.28);
     }
   },
 };
@@ -1010,6 +1098,8 @@ let hearts = 3, nitro = 0.5, boosting = false, boostVis = 0, score = 0, meters =
 let combo = 0, comboT = 0, maxCombo = 0, nearCount = 0, topSpeed = 0, invuln = 0, lap = 0;
 let testAuto = false;
 let shake = 0, flash = 0, skyOffset = 0, cdT = 0, goT = 0, dyingT = 0, zoneIdx = 0, autoX = 0, lastCd = 0;
+let airT = 0, airKind = 0, airVis = 0; // airKind 1 점프, 2 날개 비행
+let wingVis = 0, glint = 0, rings = [];  // 날개 펼침, 이륙 섬광, 바닥 충격파
 let particles = [], popups = [];
 const stars = Array.from({ length: 130 }, () => ({ x: Math.random(), y: Math.random() * 0.92, s: 0.6 + Math.random() * 1.6, p: Math.random() * 6 }));
 
@@ -1017,6 +1107,7 @@ function resetRun() {
   position = 0; speed = 0; playerX = 0; steer = 0; hearts = 3; nitro = 0.5; boosting = false; boostVis = 0;
   score = 0; meters = 0; combo = 0; comboT = 0; maxCombo = 0; nearCount = 0; topSpeed = 0; invuln = 0;
   lap = 0; zoneIdx = 0; maxSpeed = MAXS; particles = []; popups = []; flash = 0; shake = 0; safeT = 0;
+  airT = 0; airKind = 0; airVis = 0; wingVis = 0; glint = 0; rings = [];
   for (const s of segments) for (const p of s.pickups) p.lap = -1;
   placeCars();
   updateHearts(); // 새 판 시작 때 하트 표시를 3개로 다시 그린다
@@ -1137,7 +1228,11 @@ function showBanner(i) {
   const b = $('banner'); b.style.setProperty('--c', z.edge);
   b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
 }
-function popup(text, sub, col, x, y, big) { popups.push({ text, sub, col, x, y, life: 1.1, big }); }
+function popup(text, sub, col, x, y, big) {
+  // 겹치지 않게 먼저 뜬 것을 위로 민다. 점수판 자리까지 밀린 것은 바로 사라지게 한다.
+  for (const q of popups) if (q.y > y - 50) { q.y -= 50; if (q.y < H * 0.24) q.life = Math.min(q.life, 0.2); }
+  popups.push({ text, sub, col, x, y, life: 1.1, big });
+}
 function burst(x, y, n, cols, spd, size, life) {
   for (let i = 0; i < n; i++) {
     const a = Math.random() * Math.PI * 2, v = spd * (0.3 + Math.random());
@@ -1162,7 +1257,7 @@ function crash(car) {
   hearts--; invuln = 1.8; shake = 1; flash = 1; combo = 0; comboT = 0;
   speed = Math.min(speed, car.base * 0.55);
   car.hit = true; car.speed = car.base * 1.2;
-  boosting = false;
+  boosting = false; airT = 0; airKind = 0;
   burst(HW, carBaseY - halfRoadPx * 0.2, 36, ['#fff', '#ffe066', '#ff7a1a', '#ff2bd6'], 420, 4, 0.8);
   Snd.sfx('crash'); // 실패에는 진동을 주지 않는다
   cleanStreak = 0;
@@ -1170,6 +1265,37 @@ function crash(car) {
   updateHearts();
   if (hearts <= 0) { state = 'dying'; dyingT = 1.6; }
 }
+function landShock(kind) {
+  const big = kind === 2;
+  invuln = Math.max(invuln, big ? 0.4 : 0.22);
+  shake = Math.max(shake, big ? 0.62 : 0.28);
+  const pz = (position + playerZ) % trackLength;
+  const reach = big ? 1100 : 520, force = big ? 0.78 : 0.35;
+  for (const c of cars) {
+    if (!c.on) continue;
+    const ad = Math.abs(wrapHalf(c.z - pz));
+    if (ad > reach || c.hit) continue;
+    const side = c.x >= playerX ? 1 : -1;
+    c.x = clamp(c.x + side * (1 - ad / reach) * force, -1.65, 1.65);
+    let best = LANES[0];
+    for (const l of LANES) if (Math.abs(l - c.x) < Math.abs(best - c.x)) best = l;
+    c.tx = best;
+  }
+  burst(HW, carBaseY - halfRoadPx * 0.05, big ? 28 : 12, ['#ffe066', '#fff', '#00e5ff'], big ? 340 : 180, 3, 0.55);
+  ring(carBaseY, halfRoadPx * (big ? 1.5 : 0.8), '#ffe066', big ? 0.6 : 0.4, big ? 7 : 4);
+  if (big) ring(carBaseY, halfRoadPx * 0.95, '#00e5ff', 0.45, 4);
+  Snd.sfx('land'); buzz(big ? 36 : 16);
+  if (big) popup('TOUCHDOWN', 'LANE CLEAR', '#ffe066', HW, popY(0.55), false);
+}
+// 떠오르면 차는 위로, 카메라도 조금 따라 올라가 도로가 아래로 꺼진다.
+const AIR_LIFT = 0.58, AIR_CAM = 0.16;
+const airGap = () => Math.max(90, carBaseY - HZ);
+function airLiftPx() { return airVis * airGap() * AIR_LIFT; }
+function airDropPx() { return airVis * (carBaseY - HZ) * AIR_CAM; }
+// 팝업은 차 위에 띄운다. 비행 중에는 차를 가리지 않게 같이 올라간다.
+const popY = (k, lift = airLiftPx()) => Math.max(H * 0.2, carBaseY - lift - halfRoadPx * k);
+// 도로 위로 퍼지는 납작한 충격파
+function ring(y, r, col, life, lw) { rings.push({ y, r, col, life, max: life, lw }); }
 function nearMiss(dx) {
   combo++; maxCombo = Math.max(maxCombo, combo); comboT = 4; nearCount++;
   const mult = 1 + Math.min(combo, 9);
@@ -1177,7 +1303,7 @@ function nearMiss(dx) {
   const pts = (close ? 250 : 100) * mult;
   score += pts;
   nitro = Math.min(1, nitro + (close ? 0.16 : 0.1));
-  popup(close ? 'CLOSE CALL!' : 'NEAR MISS', '+' + pts, close ? '#ffe066' : '#00e5ff', HW, carBaseY - halfRoadPx * 0.45, close);
+  popup(close ? 'CLOSE CALL!' : 'NEAR MISS', '+' + pts, close ? '#ffe066' : '#00e5ff', HW, popY(0.45), close);
   shake = Math.max(shake, 0.25);
   Snd.sfx(close ? 'close' : 'near'); buzz(18);
   const m = $('mult'); m.classList.remove('pop'); void m.offsetWidth; m.classList.add('pop');
@@ -1201,11 +1327,22 @@ function update(dt, realDt) {
   if (boosting) nitro = Math.max(0, nitro - dt * 0.26);
   boostVis = approach(boostVis, boosting ? 1 : 0, dt * (boosting ? 4 : 2));
 
+  if (playing && airT > 0) {
+    const kind = airKind;
+    airT -= dt;
+    if (airT <= 0) { airT = 0; airKind = 0; landShock(kind); }
+  }
+  const visTarget = airT <= 0 ? 0 : airKind === 2 ? (airT < 0.45 ? airT / 0.45 : 1) : Math.sin(Math.min(1, airT / HOP_T) * Math.PI) * 0.48;
+  airVis = approach(airVis, visTarget, dt * (airKind === 1 ? 9 : 3.4));
+  wingVis = approach(wingVis, airKind === 2 && airT > 0.12 ? 1 : 0, dt * 4.5);
+  const airborne = airT > 0 || airVis > 0.22;
+
   const offroad = Math.abs(playerX) > 1.05;
   let target = 0;
   if (playing) target = maxSpeed * (boosting ? BOOST : 1);
   else if (auto) target = MAXS * 0.85;
-  if (offroad && target > maxSpeed * 0.42) target = maxSpeed * 0.42;
+  if (offroad && !airborne && target > maxSpeed * 0.42) target = maxSpeed * 0.42;
+  else if (offroad && airborne && target > maxSpeed * 0.85) target = maxSpeed * 0.85;
   const acc = speed < target ? maxSpeed * (boosting ? 0.9 : 0.32) : maxSpeed * (offroad ? 1.1 : state === 'dying' ? 0.9 : 0.55);
   speed = approach(speed, target, acc * dt);
   const prevPos = position;
@@ -1218,10 +1355,10 @@ function update(dt, realDt) {
   const dir = auto || (testAuto && playing) ? autopilot() : (playing ? inputDir() : 0);
   steer = approach(steer, dir, dt * (auto ? 3 : 7));
   playerX += steer * dt * 2.5 * Math.min(1, pct * 1.5 + 0.1);
-  if (!auto) playerX -= dt * pct * pct * pSeg.curve * 0.21;
+  if (!auto) playerX -= dt * pct * pct * pSeg.curve * (airborne ? 0.06 : 0.21);
   playerX = clamp(playerX, -2.1, 2.1);
   skyOffset += pSeg.curve * pct * dt * 0.12;
-  if (offroad && speed > 1000) shake = Math.max(shake, 0.12);
+  if (offroad && !airborne && speed > 1000) shake = Math.max(shake, 0.12);
 
   // 차량
   const frozen = state === 'countdown';
@@ -1257,7 +1394,7 @@ function update(dt, realDt) {
     }
     const dz = wrapHalf(c.z - pz), dx = Math.abs(c.x - playerX);
     if (playing) {
-      if (invuln <= 0 && safeT <= 0 && !c.hit && Math.abs(dz) < 230 && dx < (c.w + 0.44) * 0.43) crash(c);
+      if (!airborne && invuln <= 0 && safeT <= 0 && !c.hit && Math.abs(dz) < 230 && dx < (c.w + 0.44) * 0.43) crash(c);
       else if (c.prev > 0 && dz <= 0 && c.prev < 1500 && dx < 0.86 && !c.hit && invuln <= 0) nearMiss(dx);
     }
     c.prev = dz;
@@ -1268,10 +1405,20 @@ function update(dt, realDt) {
     const s = segments[(pSeg.index + k + segments.length) % segments.length];
     for (const p of s.pickups) {
       if (p.lap === lap) continue;
-      if (Math.abs(wrapHalf(p.z - pz)) < 260 && Math.abs(p.x - playerX) < 0.4) {
+      const reach = p.type === 'ramp' ? 0.55 : 0.4;
+      if (Math.abs(wrapHalf(p.z - pz)) < 260 && Math.abs(p.x - playerX) < reach) {
         p.lap = lap;
-        if (p.type === 'heart') { if (hearts < 3) hearts++; updateHearts(); popup('REPAIR', '♥ +1', '#ff2bd6', HW, carBaseY - halfRoadPx * 0.5, true); Snd.sfx('heart'); burst(HW, carBaseY - halfRoadPx * 0.25, 24, ['#ff2bd6', '#fff'], 260, 3, 0.7); }
-        else { nitro = Math.min(1, nitro + 0.3); score += 50 * (1 + Math.min(combo, 9)); popup('NITRO', '+30%', '#00e5ff', HW, carBaseY - halfRoadPx * 0.5, false); Snd.sfx('orb'); burst(HW, carBaseY - halfRoadPx * 0.25, 24, ['#00e5ff', '#fff'], 260, 3, 0.7); }
+        const by = carBaseY - airLiftPx() - halfRoadPx * 0.25, gy = carBaseY + airDropPx();
+        if (p.type === 'heart') { if (hearts < 3) hearts++; updateHearts(); popup('REPAIR', '♥ +1', '#ff2bd6', HW, popY(0.5), true); Snd.sfx('heart'); burst(HW, by, 24, ['#ff2bd6', '#fff'], 260, 3, 0.7); ring(gy, halfRoadPx * 0.7, '#ff2bd6', 0.4, 4); }
+        else if (p.type === 'wing') {
+          airT = FLY_T; airKind = 2; glint = 1;
+          popup('SKYLINE', 'FLY 4s', '#ffe066', HW, popY(0.5, airGap() * AIR_LIFT), true); Snd.sfx('fly');
+          burst(HW, by, 28, ['#ffe066', '#fff', '#00e5ff'], 300, 3.2, 0.75);
+          ring(gy, halfRoadPx * 1.2, '#ffe066', 0.55, 6); ring(gy, halfRoadPx * 0.7, '#fff', 0.35, 3);
+        } else if (p.type === 'ramp') {
+          if (airKind === 2 && airT > 0) airT = Math.min(FLY_T + 0.5, airT + 0.3);
+          else { airT = HOP_T; airKind = 1; popup('JUMP', 'RAMP', '#ffe066', HW, popY(0.6), false); Snd.sfx('hop'); ring(gy, halfRoadPx * 0.7, '#ffe066', 0.35, 4); }
+        } else { nitro = Math.min(1, nitro + 0.3); score += 50 * (1 + Math.min(combo, 9)); popup('NITRO', '+30%', '#00e5ff', HW, popY(0.5), false); Snd.sfx('orb'); burst(HW, by, 24, ['#00e5ff', '#fff'], 260, 3, 0.7); ring(gy, halfRoadPx * 0.7, '#00e5ff', 0.4, 4); }
         buzz(20);
       }
     }
@@ -1281,7 +1428,7 @@ function update(dt, realDt) {
   if (playing || state === 'dying') {
     const dm = speed * dt * M_PER_U;
     meters += dm;
-    if (playing) score += dm * (1 + Math.min(combo, 9)) * (boosting ? 1.5 : 1);
+    if (playing) score += dm * (1 + Math.min(combo, 9)) * (boosting ? 1.5 : 1) * (airKind === 2 && airT > 0 ? 1.8 : 1);
     topSpeed = Math.max(topSpeed, speed * M_PER_U * 3.6);
     const zi = Math.floor(meters / ZONE_M);
     if (zi !== zoneIdx) { zoneIdx = zi; showBanner(zi); }
@@ -1290,12 +1437,27 @@ function update(dt, realDt) {
   }
 
   // 배기 불꽃
+  const liftPx = airLiftPx();
   if (boostVis > 0.1 && Math.random() < 0.9) {
     const pw = halfRoadPx * 0.52, ph = pw * SPR.player.height / SPR.player.width;
-    for (const sx of [-1, 1]) particles.push({ x: HW + steer * pw * 0.05 + sx * SPR.exhaust.dx * pw, y: carBaseY - SPR.exhaust.dy * ph, vx: (Math.random() - 0.5) * 60 + sx * 20, vy: 160 + Math.random() * 120, life: 0.35, max: 0.35, s: pw * 0.035, c: Math.random() < 0.5 ? '#00e5ff' : '#ff7ae6', g: 0 });
+    for (const sx of [-1, 1]) particles.push({ x: HW + steer * pw * 0.05 + sx * SPR.exhaust.dx * pw, y: carBaseY - liftPx - SPR.exhaust.dy * ph, vx: (Math.random() - 0.5) * 60 + sx * 20, vy: 160 + Math.random() * 120, life: 0.35, max: 0.35, s: pw * 0.035, c: Math.random() < 0.5 ? '#00e5ff' : '#ff7ae6', g: 0 });
+  }
+  // 날개 끝에서 흘러내리는 빛
+  if (wingVis > 0.5) {
+    const pw = halfRoadPx * 0.52, ph = pw * SPR.player.height / SPR.player.width, sc = 1 - airVis * 0.16;
+    for (const sx of [-1, 1]) {
+      if (Math.random() > 0.55) continue;
+      const tip = wingTip(pw, ph, sx);
+      particles.push({ x: HW + steer * pw * 0.05 + tip[0] * sc, y: carBaseY - liftPx + tip[1] * sc, vx: sx * (40 + Math.random() * 50) - steer * 90, vy: 120 + Math.random() * 110, life: 0.55, max: 0.55, s: 1.6 + Math.random() * 1.6, c: Math.random() < 0.6 ? '#ffe066' : '#fff', g: 0 });
+    }
+  } else if (airVis > 0.25 && Math.random() < 0.7) {
+    particles.push({ x: HW + (Math.random() - 0.5) * 46, y: carBaseY - liftPx - 8, vx: (Math.random() - 0.5) * 50, vy: 50 + Math.random() * 90, life: 0.4, max: 0.4, s: 3, c: Math.random() < 0.5 ? '#ffe066' : '#fff', g: 0 });
   }
   for (const p of particles) { p.x += p.vx * realDt; p.y += p.vy * realDt; p.vy += 600 * p.g * realDt; p.life -= realDt; }
   particles = particles.filter((p) => p.life > 0);
+  for (const r of rings) r.life -= realDt;
+  if (rings.length) rings = rings.filter((r) => r.life > 0);
+  glint = Math.max(0, glint - realDt * 2.4);
   for (const p of popups) { p.life -= realDt; p.y -= 50 * realDt; }
   popups = popups.filter((p) => p.life > 0);
   shake = Math.max(0, shake - realDt * 2.2);
@@ -1361,6 +1523,37 @@ function drawSprite(img, sc, x, y, w, offX) {
   if (dx > W || dx + dw < 0 || y - dh > H) return;
   ctx.drawImage(img, dx, y - dh, dw, dh);
 }
+// 아이템: 바닥 빛 + 빛기둥 위에 원판을 띄우고, 바깥 링만 세로축으로 돌린다. u는 도로 반폭(px).
+function drawToken(tk, u, x, y, seed) {
+  const d = u * 0.36; if (d < 1.4) return;
+  ctx.globalCompositeOperation = 'lighter';
+  const hw = u * 0.5, bw = u * 0.1, bh = bw * 256 / 48;
+  ctx.drawImage(tk.halo, x - hw / 2, y - hw * 0.15, hw, hw * 0.3);
+  ctx.drawImage(tk.beam, x - bw / 2, y - bh, bw, bh);
+  ctx.globalCompositeOperation = 'source-over';
+  const cy = y - u * (0.26 + 0.025 * Math.sin(T * 4 + seed * 0.01)), pulse = 1 + 0.05 * Math.sin(T * 9 + seed * 0.02);
+  const cd = d * pulse, rw = d * (0.22 + 0.78 * Math.abs(Math.cos(T * 2.6 + seed * 0.003)));
+  ctx.drawImage(tk.core, x - cd / 2, cy - cd / 2, cd, cd);
+  ctx.drawImage(tk.ring, x - rw / 2, cy - d / 2, rw, d);
+}
+// 점프대 유도 패드: 차선 위에 깔린 화살표가 킥커 쪽으로 차례로 켜진다.
+function drawPad(s) {
+  const a = s.p1, b = s.p2, d = s.pad, hw = 0.27;
+  const lit = ((d.k - Math.floor(T * 14)) % 4 + 4) % 4 === 0;
+  const ax = a.sx + a.sw * d.x, bx = b.sx + b.sw * d.x, aw = a.sw * hw, bw = b.sw * hw;
+  ctx.globalAlpha = s.fade * (lit ? 0.42 : 0.16);
+  ctx.fillStyle = '#ffe066';
+  quad(ax - aw, a.sy, ax + aw, a.sy, bx + bw, b.sy, bx - bw, b.sy);
+  ctx.globalAlpha = s.fade;
+  quad(ax - aw, a.sy, ax - aw * 0.9, a.sy, bx - bw * 0.9, b.sy, bx - bw, b.sy);
+  quad(ax + aw * 0.9, a.sy, ax + aw, a.sy, bx + bw, b.sy, bx + bw * 0.9, b.sy);
+  ctx.fillStyle = lit ? '#fff7cc' : '#ffb400';
+  ctx.beginPath();
+  ctx.moveTo(ax - aw * 0.72, a.sy); ctx.lineTo(bx, b.sy); ctx.lineTo(ax + aw * 0.72, a.sy);
+  ctx.lineTo(ax + aw * 0.34, a.sy); ctx.lineTo((ax + bx) / 2, (a.sy + b.sy) / 2); ctx.lineTo(ax - aw * 0.34, a.sy);
+  ctx.closePath(); ctx.fill();
+  ctx.globalAlpha = 1;
+}
 function drawLayer(img, spd, yBottom) {
   const w = img.width / DPR, h = img.height / DPR;
   let ox = (-skyOffset * spd * U) % w; if (ox > 0) ox -= w;
@@ -1417,19 +1610,96 @@ function drawAurora(al) {
   }
   ctx.restore();
 }
+// 날개 끝 위치(차 발밑 기준). 그리기와 파티클이 같이 쓴다.
+function wingTip(pw, ph, s) {
+  const e = wingVis * wingVis * (3 - 2 * wingVis);
+  return [s * pw * (0.3 + 0.8 * e), -ph * (0.62 + (0.8 + Math.sin(T * 7) * 0.05) * e)];
+}
+const WING_FEATHERS = [[0.84, 0.3], [0.62, 0.46], [0.38, 0.56], [0.14, 0.52]];   // 뒷전 깃 끝(날개 길이 비율, 처짐)
+const WING_NOTCHES = [[0.74, 0.1], [0.5, 0.2], [0.26, 0.28]];                     // 깃 사이 파인 곳
+function drawWings(pw, ph) {
+  const e = wingVis * wingVis * (3 - 2 * wingVis);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  for (const s of [-1, 1]) {
+    const rx = s * pw * 0.3, ry = -ph * 0.62, [tx, ty] = wingTip(pw, ph, s);
+    const X = (k) => rx + (tx - rx) * k, Y = (k, d) => ry + (ty - ry) * k + ph * d * e;
+    const cx = X(0.45), cy = Y(0.45, -0.24), y0 = ry - ph * 0.08;
+    const lead = () => { ctx.beginPath(); ctx.moveTo(rx, y0); ctx.quadraticCurveTo(cx, cy, tx, ty); };
+    const gr = ctx.createLinearGradient(rx, ry, tx, ty);
+    gr.addColorStop(0, 'rgba(255,214,90,.95)'); gr.addColorStop(0.55, 'rgba(255,150,20,.6)'); gr.addColorStop(1, 'rgba(255,80,0,.14)');
+    ctx.fillStyle = gr;
+    lead();   // 앞전에서 끝까지 간 뒤 뒷전의 깃을 따라 돌아온다.
+    for (let i = 0; i < WING_FEATHERS.length; i++) {
+      ctx.lineTo(X(WING_FEATHERS[i][0]), Y(WING_FEATHERS[i][0], WING_FEATHERS[i][1]));
+      if (i < WING_NOTCHES.length) ctx.lineTo(X(WING_NOTCHES[i][0]), Y(WING_NOTCHES[i][0], WING_NOTCHES[i][1]));
+    }
+    ctx.lineTo(rx, ry + ph * 0.3);
+    ctx.closePath(); ctx.fill();
+    // 깃대
+    ctx.strokeStyle = 'rgba(255,244,200,.4)'; ctx.lineWidth = Math.max(1, pw * 0.006); ctx.beginPath();
+    for (const [k, d] of WING_FEATHERS) {
+      const t = Math.max(0.06, k - 0.1), u = 1 - t;
+      ctx.moveTo(u * u * rx + 2 * t * u * cx + t * t * tx, u * u * y0 + 2 * t * u * cy + t * t * ty); ctx.lineTo(X(k), Y(k, d));
+    }
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,190,70,.35)'; ctx.lineWidth = pw * 0.035; lead(); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.lineWidth = Math.max(1.5, pw * 0.01); lead(); ctx.stroke();
+  }
+}
 function drawPlayer() {
   const img = SPR.player, pw = halfRoadPx * 0.52, ph = pw * img.height / img.width;
   const pct = speed / maxSpeed;
-  const bounce = Math.sin(T * 31) * Math.min(1, pct) * 0.8 + (Math.abs(playerX) > 1.05 ? (Math.random() - 0.5) * 4 : 0);
-  const x = HW + steer * pw * 0.05, y = carBaseY + bounce;
+  const bounce = Math.sin(T * 31) * Math.min(1, pct) * 0.8 + (Math.abs(playerX) > 1.05 && airT <= 0 ? (Math.random() - 0.5) * 4 : 0);
+  const x = HW + steer * pw * 0.05, groundY = carBaseY + bounce + airDropPx(), y = carBaseY + bounce - airLiftPx();
+  const sc = 1 - airVis * 0.16;
+  // 바닥: 충격파, 그림자, 착지 지점 링
+  ctx.save(); ctx.translate(x, 0); ctx.scale(1, 0.26);
+  if (rings.length) {
+    ctx.globalCompositeOperation = 'lighter';
+    for (const r of rings) {
+      const k = 1 - r.life / r.max, e = 1 - (1 - k) * (1 - k);
+      ctx.globalAlpha = 1 - k; ctx.strokeStyle = r.col; ctx.lineWidth = r.lw * 2 * (1 - k * 0.6);
+      ctx.beginPath(); ctx.arc(0, r.y / 0.26, r.r * (0.15 + 0.85 * e), 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  if (airVis > 0.04) {
+    const gy = groundY / 0.26;
+    ctx.globalAlpha = 0.5 * (1 - airVis * 0.3);
+    ctx.fillStyle = '#05010d'; ctx.beginPath(); ctx.arc(0, gy, pw * (0.5 - airVis * 0.14), 0, Math.PI * 2); ctx.fill();
+    if (wingVis > 0.05) {
+      const left = clamp(airT / FLY_T, 0, 1);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = wingVis * (airT < 1 ? 0.45 + 0.45 * Math.sin(T * 26) : 0.75);
+      ctx.strokeStyle = '#ffe066'; ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.arc(0, gy, pw * (0.4 + 0.22 * left), 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha *= 0.5; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(0, gy, pw * (0.4 + 0.22 * left) * 1.22, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalCompositeOperation = 'source-over';
+    }
+  }
+  ctx.restore(); ctx.globalAlpha = 1;
   if (state === 'dying' || state === 'over') ctx.globalAlpha = 1;
-  else if (invuln > 0 && Math.floor(T * 16) % 2) ctx.globalAlpha = 0.4;
-  ctx.save(); ctx.translate(x, y); ctx.rotate(steer * 0.035 + (state === 'dying' ? Math.sin(T * 20) * 0.05 : 0));
+  else if (invuln > 0 && airT <= 0 && Math.floor(T * 16) % 2) ctx.globalAlpha = 0.4;
+  // 공중에서는 조향 방향으로 기체를 기울인다.
+  ctx.save(); ctx.translate(x, y); ctx.rotate(steer * (0.035 + 0.11 * airVis) + (state === 'dying' ? Math.sin(T * 20) * 0.05 : 0)); ctx.scale(sc, sc);
   // 언더글로
   ctx.globalCompositeOperation = 'lighter';
   const ug = ctx.createRadialGradient(0, 0, 2, 0, 0, pw * 0.6);
-  ug.addColorStop(0, `rgba(0,229,255,${0.35 + 0.25 * boostVis})`); ug.addColorStop(1, 'rgba(0,229,255,0)');
+  const glow = airVis > 0.2 ? '255,224,102' : '0,229,255';
+  ug.addColorStop(0, `rgba(${glow},${0.35 + 0.25 * boostVis + airVis * 0.25})`); ug.addColorStop(1, `rgba(${glow},0)`);
   ctx.fillStyle = ug; ctx.save(); ctx.scale(1, 0.22); ctx.beginPath(); ctx.arc(0, 0, pw * 0.6, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  if (wingVis > 0.02) drawWings(pw, ph);
+  // 떠 있는 동안 아래로 뿜는 호버 제트
+  if (airVis > 0.06) {
+    for (const sx of [-1, 1]) {
+      const len = ph * (0.22 + 0.3 * airVis) * (0.8 + Math.random() * 0.4);
+      ctx.save(); ctx.translate(sx * pw * 0.3, -ph * 0.06); ctx.scale(0.32, 1);
+      const jet = ctx.createRadialGradient(0, 0, 0, 0, len * 0.25, len);
+      jet.addColorStop(0, 'rgba(255,255,255,.9)'); jet.addColorStop(0.3, 'rgba(255,224,102,.6)'); jet.addColorStop(1, 'rgba(255,122,26,0)');
+      ctx.fillStyle = jet; ctx.beginPath(); ctx.arc(0, len * 0.25, len, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    }
+  }
   ctx.globalCompositeOperation = 'source-over';
   ctx.drawImage(img, -pw / 2, -ph, pw, ph);
   if (boostVis > 0.02) {
@@ -1443,9 +1713,26 @@ function drawPlayer() {
     ctx.globalCompositeOperation = 'source-over';
   }
   ctx.restore(); ctx.globalAlpha = 1;
+  // 날개 끝에서 뒤로(화면에서는 바깥 아래로) 흘러가는 빛줄기
+  if (wingVis > 0.3) {
+    const ang = steer * (0.035 + 0.11 * airVis), ca = Math.cos(ang), sa = Math.sin(ang);
+    ctx.globalCompositeOperation = 'lighter';
+    for (const s of [-1, 1]) {
+      const [wx, wy] = wingTip(pw, ph, s);
+      const px = x + (wx * ca - wy * sa) * sc, py = y + (wx * sa + wy * ca) * sc;
+      let dx = (px - HW) * 0.6, dy = Math.max(0, py - HZ) + U * 0.35;
+      const dl = Math.hypot(dx, dy); dx /= dl; dy /= dl;
+      const len = U * (0.5 + 0.08 * Math.sin(T * 11 + s)) * wingVis, w = pw * 0.022;
+      const ex = px + dx * len, ey = py + dy * len;
+      const tg = ctx.createLinearGradient(px, py, ex, ey);
+      tg.addColorStop(0, 'rgba(255,240,180,.8)'); tg.addColorStop(0.35, 'rgba(255,170,40,.32)'); tg.addColorStop(1, 'rgba(255,43,214,0)');
+      ctx.fillStyle = tg; ctx.beginPath(); ctx.moveTo(px - dy * w, py + dx * w); ctx.lineTo(ex, ey); ctx.lineTo(px + dy * w, py - dx * w); ctx.closePath(); ctx.fill();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+  }
 }
-let order = new Array(DRAW), boostOp = -1;
-const boostEl = document.getElementById('boostfx');
+let order = new Array(DRAW), boostOp = -1, flyOp = -1;
+const boostEl = document.getElementById('boostfx'), flyEl = document.getElementById('flyfx');
 function render() {
   const L = segments.length;
   const base = segAt(position), basePct = (position % SEG) / SEG;
@@ -1462,7 +1749,7 @@ function render() {
   ctx.fillStyle = P.g[0][FOGL - 1]; ctx.fillRect(-20, HZ, W + 40, H - HZ + 20);
 
   let x = 0, dx = -(base.curve * basePct), maxy = H;
-  const camY = playerY + CAMH, camX = playerX * ROADW;
+  const camY = playerY + CAMH * (1 + airVis * AIR_CAM), camX = playerX * ROADW;
   for (let n = 0; n < DRAW; n++) {
     const s = segments[(base.index + n) % L];
     const camZ = position - (s.index < base.index ? trackLength : 0);
@@ -1478,19 +1765,15 @@ function render() {
   }
   for (let n = DRAW - 1; n > 0; n--) {
     const s = order[n];
-    if (s.vis) drawSeg(s, P, s.fi);
+    if (s.vis) { drawSeg(s, P, s.fi); if (s.pad) drawPad(s); }
     if (!s.front) continue;
     const a = s.p1, b = s.p2;
     if (s.fade < 1) ctx.globalAlpha = s.fade;
     for (const sp of s.sprites) drawSprite(sp.img, a.scale, a.sx + a.scale * sp.x * ROADW * U, a.sy, sp.w, sp.x < 0 ? -1 : 0);
-    if (s.pickups.length) {
-      ctx.globalCompositeOperation = 'lighter';
-      for (const pk of s.pickups) {
-        if (pk.lap === lap) continue;
-        const sc = (a.scale + b.scale) / 2, px = (a.sx + b.sx) / 2 + sc * pk.x * ROADW * U, py = (a.sy + b.sy) / 2;
-        drawSprite(pk.type === 'heart' ? SPR.heart : SPR.orb, sc, px, py - sc * ROADW * U * (0.06 + 0.03 * Math.sin(T * 5)), 0.3 * (1 + 0.08 * Math.sin(T * 9)), -0.5);
-      }
-      ctx.globalCompositeOperation = 'source-over';
+    for (const pk of s.pickups) {
+      const sc = (a.scale + b.scale) / 2, px = (a.sx + b.sx) / 2 + sc * pk.x * ROADW * U, py = (a.sy + b.sy) / 2;
+      if (pk.type === 'ramp') drawSprite(SPR.ramp, sc, px, py, 0.6, -0.5);
+      else if (pk.lap !== lap) drawToken(SPR.tokens[pk.type] || SPR.tokens.orb, sc * ROADW * U, px, py, pk.z);
     }
     for (const c of s.cars) {
       const p = (c.z % SEG) / SEG, sc = lerp(a.scale, b.scale, p);
@@ -1504,18 +1787,20 @@ function render() {
   ctx.globalCompositeOperation = 'lighter';
   for (const p of particles) { ctx.globalAlpha = clamp(p.life / p.max, 0, 1); ctx.fillStyle = p.c; ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s); }
   ctx.globalAlpha = 1;
-  const lines = boostVis * 26 + (speed > maxSpeed * 0.95 && state === 'play' ? 5 : 0);
+  const lines = boostVis * 26 + wingVis * 9 + (speed > maxSpeed * 0.95 && state === 'play' ? 5 : 0);
   if (lines > 1) {
-    ctx.strokeStyle = `rgba(190,245,255,${0.18 + 0.3 * boostVis})`; ctx.lineWidth = 1.6; ctx.beginPath();
+    ctx.strokeStyle = wingVis > 0.5 && !boosting ? `rgba(255,236,170,${0.2 + 0.2 * wingVis})` : `rgba(190,245,255,${0.18 + 0.3 * boostVis})`; ctx.lineWidth = 1.6; ctx.beginPath();
     for (let i = 0; i < lines; i++) {
-      const ang = Math.random() * Math.PI * 2, r1 = U * (0.55 + Math.random() * 0.7), r2 = r1 + U * (0.25 + Math.random() * 0.7) * (0.4 + boostVis);
+      const ang = Math.random() * Math.PI * 2, r1 = U * (0.55 + Math.random() * 0.7), r2 = r1 + U * (0.25 + Math.random() * 0.7) * (0.4 + Math.max(boostVis, wingVis * 0.7));
       ctx.moveTo(HW + Math.cos(ang) * r1, HZ + Math.sin(ang) * r1 * 0.85); ctx.lineTo(HW + Math.cos(ang) * r2, HZ + Math.sin(ang) * r2 * 0.85);
     }
     ctx.stroke();
   }
   ctx.globalCompositeOperation = 'source-over';
-  const bo = Math.round(boostVis * 70) / 100;
+  const bo = Math.round(boostVis * (1 - 0.65 * wingVis) * 70) / 100;   // 비행 중에는 금빛 테두리와 섞여 탁해지지 않게 줄인다.
   if (bo !== boostOp) { boostOp = bo; boostEl.style.opacity = bo; }
+  const fo = Math.round(wingVis * 85) / 100;
+  if (fo !== flyOp) { flyOp = fo; flyEl.style.opacity = fo; }
   ctx.textAlign = 'center';
   for (const p of popups) {
     const k = clamp(p.life / 1.1, 0, 1), sc = 1 + (1 - k) * 0.15 + (k > 0.9 ? (k - 0.9) * 4 : 0);
@@ -1528,6 +1813,7 @@ function render() {
   }
   ctx.globalAlpha = 1;
   if (flash > 0) { ctx.fillStyle = `rgba(255,40,90,${flash * 0.45})`; ctx.fillRect(-20, -20, W + 40, H + 40); }
+  if (glint > 0) { ctx.fillStyle = `rgba(255,224,130,${glint * 0.3})`; ctx.fillRect(-20, -20, W + 40, H + 40); }
 }
 
 // ── HUD ──
@@ -1550,6 +1836,13 @@ function updateHud() {
   const kmh = String(Math.round(speed * M_PER_U * 3.6));
   if (hud.spdV !== kmh) { hud.spdV = kmh; hud.spd.nodeValue = kmh; }
   setText('dist', (meters / 1000).toFixed(2) + ' KM');
+  const showFly = airKind === 2 && airT > 0;
+  if (hud.flyOn !== showFly) { hud.flyOn = showFly; $('fly').hidden = !showFly; }
+  if (showFly) {
+    setText('flyT', airT.toFixed(1));
+    $('flyBar').firstChild.style.transform = `scaleX(${clamp(airT / FLY_T, 0, 1).toFixed(3)})`;
+    $('fly').classList.toggle('low', airT < 1);
+  }
   const nb = $('nitroBtn');
   const nq = Math.round(nitro * 100) / 100;
   if (hud.n !== nq) { hud.n = nq; nb.style.setProperty('--n', nq); }
@@ -1581,6 +1874,7 @@ function tuneQuality(_, real) {
   if (quality < QUALITY.length - 1) { quality++; sizedW = -1; }
 }
 let last = performance.now(), lastFrameAt = 0, frames = 0, useTimer = false, frameErr = '', gen = 0;
+let dbgFreeze = false; // ?debug에서 화면을 멈춰 놓고 볼 때만 쓴다.
 function loop() {
   const g = gen;
   if (!useTimer) { requestAnimationFrame(() => frame(g)); return; }
@@ -1598,7 +1892,7 @@ function frame(g) {
     if (state !== 'paused' && W && H && vignette) {
       const ts = state === 'dying' ? 0.35 : 1;
       const t0 = performance.now();
-      update(real * ts, real);
+      if (!dbgFreeze) update(real * ts, real);
       const t1 = performance.now();
       render();
       const t2 = performance.now();
@@ -1639,7 +1933,21 @@ window.addEventListener('resize', resize);
 updateHearts();
 resetRun(); speed = MAXS * 0.7;
 $('bestT').textContent = store.best.toLocaleString();
-window.__ns = { get ahead() { const pz = (position + playerZ) % trackLength; let m = 1e9; for (const c of cars) if (c.on) { const d = wrapHalf(c.z - pz); if (d > -400 && d < m) m = d; } return m; }, get hearts() { return hearts; }, get meters() { return meters; }, get zone() { return zoneIdx; }, get clean() { return cleanStreak; }, get active() { return cars.filter((c) => c.on).length; }, get near() { return nearCount; }, patStats, auto(on) { testAuto = !!on; }, god() { safeT = 1e9; }, get safe() { return safeT; }, get state() { return state; }, get speed() { return speed; }, get score() { return score; }, get frames() { return frames; }, get timer() { return useTimer; }, perf, get W() { return W; }, get DPR() { return DPR; }, get quality() { return quality; }, get soft() { return soft; }, SPR, Snd, start: startGame };
+window.__ns = { get air() { return { t: airT, kind: airKind, vis: airVis }; }, get ahead() { const pz = (position + playerZ) % trackLength; let m = 1e9; for (const c of cars) if (c.on) { const d = wrapHalf(c.z - pz); if (d > -400 && d < m) m = d; } return m; }, get hearts() { return hearts; }, get meters() { return meters; }, get zone() { return zoneIdx; }, get clean() { return cleanStreak; }, get active() { return cars.filter((c) => c.on).length; }, get near() { return nearCount; }, patStats, auto(on) { testAuto = !!on; }, god() { safeT = 1e9; }, get safe() { return safeT; }, get state() { return state; }, get speed() { return speed; }, get score() { return score; }, get frames() { return frames; }, get timer() { return useTimer; }, perf, get W() { return W; }, get DPR() { return DPR; }, get quality() { return quality; }, get soft() { return soft; }, SPR, Snd, start: startGame };
+if (/debug/.test(location.search)) {
+  window.__ns.give = (type, ahead = 140, x = playerX) => {
+    const z = (position + playerZ + ahead) % trackLength;
+    const s = segAt(z);
+    s.pickups.push({ z, x, type, lap: -1 });
+    if (type === 'ramp') for (let k = 0; k < PAD_N; k++) segments[(s.index - PAD_N + k + segments.length) % segments.length].pad = { x, k };
+  };
+  window.__ns.clearCars = () => { for (const c of cars) if (c.on) { c.on = false; unbucket(c); } };
+  window.__ns.freeze = (on) => { dbgFreeze = on; };
+  window.__ns.overlap = () => {
+    const head = posAbs + playerZ;
+    for (const c of cars) if (c.on) { c.abs = head; c.z = ((head % trackLength) + trackLength) % trackLength; c.x = playerX; c.tx = playerX; c.hit = false; c.prev = 400; bucket(c); }
+  };
+}
 loop();
 })();
 </script>
