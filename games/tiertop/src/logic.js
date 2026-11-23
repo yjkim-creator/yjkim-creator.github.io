@@ -8,6 +8,18 @@
   const MIN_R = 0.22; // 이보다 작아지면 층이 남지 않는다
   const GROW_EVERY = 3; // 딱 맞음이 이만큼 이어지면 층이 조금 넓어진다
   const GROW = 0.12;
+  // 강화는 단계 씨앗(stageSpec)을 바꾸지 않는다. 판을 만들 때 시작 폭·속도·딱 맞음만 보탠다.
+  const REVIVE_COST = 8;
+  const REVIVE_MAX = 3;
+  const UPGRADES = {
+    wide: { max: 5, step: 0.05, costs: [4, 8, 12, 18, 24] },
+    slow: { max: 5, step: 0.05, costs: [4, 8, 12, 18, 24] },
+    cushion: { max: 3, step: 0.012, costs: [8, 14, 22] },
+  };
+  function slackOf(run) {
+    const c = run && run.up && run.up.cushion ? run.up.cushion : 0;
+    return PERFECT + c * UPGRADES.cushion.step;
+  }
 
   const FLAVORS = [
     { id: 'vanilla', ko: '바닐라', en: 'Vanilla', color: '#f2c95a', cream: '#fbe3a0', need: 0 },
@@ -124,7 +136,7 @@
     const d = Math.hypot(dx, dz);
     const flavor = flavorAt(run, run.layers.length);
     const next = { ...run, layers: run.layers.slice() };
-    if (d <= PERFECT) {
+    if (d <= slackOf(run)) {
       const streak = run.streak + 1;
       const grow = streak % GROW_EVERY === 0;
       const cap = run.mode === 'stage' ? run.layers[0].r : BASE_R;
@@ -170,7 +182,7 @@
 
   // ---------- 저장 ----------
   function newSave() {
-    return { v: 1, best: 0, totalLayers: 0, runs: 0, stamps: 0, lastStamp: '', daily: { key: '', best: 0, done: false }, bestStreak: 0, stage: { best: 0, stars: [], plays: 0 } };
+    return { v: 1, best: 0, totalLayers: 0, runs: 0, stamps: 0, lastStamp: '', daily: { key: '', best: 0, done: false }, bestStreak: 0, stage: freshStage() };
   }
   const num = (v, min = 0, max = 1e7) => (Number.isFinite(v) ? Math.max(min, Math.min(max, Math.floor(v))) : min);
   function sanitize(raw) {
@@ -194,11 +206,19 @@
     };
   }
   // 단계 기록: 예전 저장에는 없으므로 비어 있으면 0단계부터.
+  // stars(0~3)는 그 단계의 실력 별이고 랭킹에 쓴다. purse는 깰 때마다 모으는 쓸 수 있는 별이다. 둘은 섞지 않는다.
+  function freshStage() {
+    return { best: 0, stars: [], plays: 0, purse: 0, revive: 0, up: { wide: 0, slow: 0, cushion: 0 } };
+  }
+  function normalizeUp(raw) {
+    const u = raw && typeof raw === 'object' ? raw : {};
+    return { wide: num(u.wide, 0, 5), slow: num(u.slow, 0, 5), cushion: num(u.cushion, 0, 3) };
+  }
   function sanitizeStage(raw) {
     const st = raw && typeof raw === 'object' ? raw : {};
     const best = num(st.best, 0, 9999);
     const stars = Array.isArray(st.stars) ? st.stars.slice(0, best).map((x) => num(x, 0, 3)) : [];
-    return { best, stars, plays: num(st.plays) };
+    return { best, stars, plays: num(st.plays), purse: num(st.purse), revive: num(st.revive, 0, REVIVE_MAX), up: normalizeUp(st.up) };
   }
   function parseSave(text) {
     try { return sanitize(JSON.parse(text)); } catch { return newSave(); }
@@ -457,21 +477,41 @@
     return u / spec.fogP < spec.fog;
   }
 
-  function newStageRun(stage, flavorIds) {
-    const spec = stageSpec(stage);
+  function tune(spec, up) {
+    const wide = up && up.wide ? up.wide : 0;
+    const slow = up && up.slow ? up.slow : 0;
+    if (!wide && !slow) return spec;
+    const next = { ...spec };
+    if (wide) next.baseR = Math.min(BASE_R, Math.round((spec.baseR + wide * UPGRADES.wide.step) * 1000) / 1000);
+    if (slow) {
+      next.speed = Math.max(0.72, Math.round((spec.speed - slow * UPGRADES.slow.step) * 1000) / 1000);
+      if (next.fog) {
+        next.fogP = (1.618 * Math.PI) / next.speed;
+        next.fog = Math.max(spec.fog, 1 - 0.5 / next.fogP);
+      }
+    }
+    return next;
+  }
+  function playSpec(run) {
+    return tune(stageSpec(run.stage), run && run.up);
+  }
+  function newStageRun(stage, flavorIds, up) {
+    const load = normalizeUp(up);
+    const spec = tune(stageSpec(stage), load);
     const ids = flavorIds && flavorIds.length ? flavorIds : CHAPTERS[spec.chapter].flavors;
     return {
       mode: 'stage', stage: spec.n, order: `stage-${spec.n}`, target: spec.target, seed: spec.seed,
       flavors: ids.slice(),
       layers: [{ x: 0, z: 0, r: spec.baseR, flavor: ids[0] }],
       score: 0, streak: 0, bestStreak: 0, perfects: 0, over: false, delivered: false, cleared: false,
+      up: load, revived: false,
     };
   }
 
   // 지금 손을 떼면 위층 가운데에서 얼마나 떨어진 곳에 닿는지(케이크 기준). 오늘의 주문은 예전과 똑같다.
   function landingAt(run, t) {
     if (run.mode !== 'stage') return dropperOffset(t, height(run), run.seed);
-    const spec = stageSpec(run.stage);
+    const spec = playSpec(run);
     const o = stageOffset(spec, height(run), t);
     const w = stageWind(spec, run.layers.length, t);
     const p = stageSlide(spec, t + FALL_T);
@@ -488,10 +528,10 @@
   }
   // 화면에 그릴 짤주머니 위치(위층 가운데 기준, 바람 전)
   function hoverAt(run, t) {
-    return run.mode === 'stage' ? stageOffset(stageSpec(run.stage), height(run), t) : dropperOffset(t, height(run), run.seed);
+    return run.mode === 'stage' ? stageOffset(playSpec(run), height(run), t) : dropperOffset(t, height(run), run.seed);
   }
   function plateShift(run, t) {
-    return run && run.mode === 'stage' ? stageSlide(stageSpec(run.stage), t) : { x: 0, z: 0 };
+    return run && run.mode === 'stage' ? stageSlide(playSpec(run), t) : { x: 0, z: 0 };
   }
 
   // 딱 맞출 수 있는 시간 구간들을 찾는다(시연 손과 검증용). step 초 간격으로 훑는다.
@@ -523,6 +563,41 @@
   // 전국 랭킹 '최고 도달 단계' 점수: 단계 × 1000 + 모은 별(같은 단계면 별이 많은 쪽이 위)
   const stageRankScore = (save) => (save.stage && save.stage.best > 0 ? save.stage.best * 1000 + Math.min(999, totalStageStars(save)) : 0);
   const stageUnlocked = (save, n) => clampStage(n) <= Math.min(STAGE_CAP, ((save.stage && save.stage.best) || 0) + 1);
+  function stagePay(run) {
+    return run && run.cleared ? stageStars(run) : 0;
+  }
+  function grantPurse(save, amount) {
+    const s = sanitize(save);
+    const add = num(amount);
+    if (!add) return s;
+    return { ...s, stage: { ...s.stage, purse: num(s.stage.purse + add) } };
+  }
+  function buy(save, id) {
+    const s = sanitize(save);
+    const st = { ...s.stage, up: { ...s.stage.up } };
+    if (id === 'revive') {
+      if (st.revive >= REVIVE_MAX || st.purse < REVIVE_COST) return null;
+      st.revive += 1;
+      st.purse -= REVIVE_COST;
+    } else {
+      const def = UPGRADES[id];
+      if (!def) return null;
+      const lv = st.up[id];
+      if (lv >= def.max || st.purse < def.costs[lv]) return null;
+      st.purse -= def.costs[lv];
+      st.up[id] = lv + 1;
+    }
+    return { ...s, stage: st };
+  }
+  function takeRevive(save) {
+    const s = sanitize(save);
+    if (!s.stage.revive) return null;
+    return { ...s, stage: { ...s.stage, revive: s.stage.revive - 1 } };
+  }
+  function continueRun(run) {
+    if (!run || run.mode !== 'stage' || !run.over || run.cleared || run.revived) return null;
+    return { ...run, over: false, revived: true, streak: 0 };
+  }
 
   // 단계 판이 끝났을 때 기록을 더한다.
   function recordStage(save, run) {
@@ -552,6 +627,7 @@
   const logic = {
     FALL_T, STAGE_CAP, STAGE_MAIN, CHAPTERS, chapterOf, stageSpec, stageOffset, stageWind, stageSlide, stageVisible, stageAmp, newStageRun, landingAt, hoverAt, plateShift,
     perfectWindows, nextPerfectTime, stageStars, totalStageStars, stageRankScore, stageUnlocked, recordStage, sanitizeStage,
+    REVIVE_COST, REVIVE_MAX, UPGRADES, slackOf, tune, playSpec, stagePay, grantPurse, buy, takeRevive, continueRun,
     perfectsToNextStar,
     BASE_R, LAYER_H, PERFECT, MIN_R, GROW_EVERY, FLAVORS, CUSTOMERS,
     dayKey, hash, rng, unlockedFlavors, nextUnlock, dailyOrder, swing, dropperOffset,

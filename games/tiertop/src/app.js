@@ -16,6 +16,11 @@
     cleared: (n) => `${n}단계 통과!`, failed: (n) => `${n}단계 · 다시 해 봐요`, nextStage: '다음 단계', retry: '다시 도전', go: '시작',
     stageBest: (n) => `내 최고 단계 ${n}`, natRank: (n) => `전국 ${n}위`, natAbout: (n) => `전국 약 ${n}위`, newDevice: '새 장치', chapter: (n) => `${n}장`,
     stars: (n) => `별 ${n}개`, reached: (h, t) => `${h} / ${t}층`, endless: '끝없는 단계', locked: '앞 단계를 깨면 열려요',
+    shop: '상점', holdStars: (n) => `별 ${n}`, gotStars: (n) => `별 ${n}개를 받았어요`, moreStars: (n) => `광고 보고 +${n} (3배)`,
+    reviveUse: (n) => `1회 살리기 (${n})`, reviveBuy: (n) => `별 ${n}로 살리기`, giveUp: '그만하기', maxed: '최대',
+    lv: (n, m) => `${n}/${m}`, owned: (n, m) => `보유 ${n}/${m}`, ad: '광고', adTitle: '별 3배', adWait: '잠시 후 받은 별이 3배가 돼요',
+    wide: '넓은 시작', wideDesc: '시작 케이크가 한 단계씩 넓어져요', slow: '느린 시작', slowDesc: '처음 속도가 한 단계씩 느려져요',
+    cushion: '여유 판정', cushionDesc: '딱 맞음이 한 단계씩 너그러워져요', reviveName: '1회 살리기', reviveDesc: '기울어진 직후, 한 판에 한 번 이어 쌓아요',
     devices: {
       basic: ['흔들 짤주머니', '짤주머니가 앞뒤로 흔들려요. 가운데를 지날 때 톡!'],
       wind: ['산들바람', '바람이 떨어지는 층을 밀어요. 동그란 고리가 층이 닿을 자리예요. 고리가 가운데 점에 올 때 톡!'],
@@ -42,6 +47,11 @@
     cleared: (n) => `Stage ${n} clear!`, failed: (n) => `Stage ${n} · try again`, nextStage: 'Next stage', retry: 'Try again', go: 'Start',
     stageBest: (n) => `My best stage ${n}`, natRank: (n) => `#${n} nationwide`, natAbout: (n) => `~#${n} nationwide`, newDevice: 'New gadget', chapter: (n) => `Chapter ${n}`,
     stars: (n) => `${n} stars`, reached: (h, t) => `${h} / ${t} tiers`, endless: 'Endless stages', locked: 'Clear the stage before it',
+    shop: 'Shop', holdStars: (n) => `${n} stars`, gotStars: (n) => `You got ${n} stars`, moreStars: (n) => `Watch an ad for +${n} (3×)`,
+    reviveUse: (n) => `Revive once (${n})`, reviveBuy: (n) => `Revive for ${n} stars`, giveUp: 'Give up', maxed: 'Max',
+    lv: (n, m) => `Lv ${n}/${m}`, owned: (n, m) => `Owned ${n}/${m}`, ad: 'Ad', adTitle: 'Triple stars', adWait: 'Your stars will triple in a moment',
+    wide: 'Wider start', wideDesc: 'The first tier gets a little wider each level', slow: 'Slower start', slowDesc: 'The opening swing gets a little slower each level',
+    cushion: 'Kinder perfects', cushionDesc: 'Perfect drops get a little more forgiving', reviveName: 'One revive', reviveDesc: 'Once a run, keep stacking right after a tip',
     devices: {
       basic: ['Swinging bag', 'The piping bag swings back and forth. Tap as it passes the middle!'],
       wind: ['Breeze', 'Wind pushes the falling tier. The ring shows where it will land. Tap when the ring meets the center dot!'],
@@ -70,6 +80,8 @@
   try { run = Logic.sanitizeRun(JSON.parse(localStorage.getItem(RUN_KEY)), order); } catch { run = null; }
   let demo = false;
   let playMode = 'daily'; // daily | stage
+  let shopOpen = false;
+  let adTick = null;
   let srun = null; // 단계 판(저장하지 않는다. 앱을 닫으면 그 단계를 처음부터)
   const WALL = { kitchen: '#ffffff', garden: '#f1fff1', workshop: '#f6e6d6', teahouse: '#eef6e2', night: '#aab2e8', festival: '#fff0fa',
     greenhouse: '#fbffe6', icecafe: '#eafcff', harvest: '#fff0de', ballroom: '#b7b4e6', castle: '#efdccc', skyparty: '#f3f0ff', endless: '#ffead8' };
@@ -109,7 +121,9 @@
   sheet.className = 'sheet';
   const book = document.createElement('section');
   book.className = 'book';
-  app.append(hud, hint, pops, sheet, book);
+  const ad = document.createElement('section');
+  ad.className = 'ad';
+  app.append(hud, hint, pops, sheet, book, ad);
   const $ = (sel) => app.querySelector(sel);
   const muteBtn = $('#muteBtn');
   const paintMute = () => { muteBtn.innerHTML = Sfx.muted ? icon.mute : icon.sound; muteBtn.classList.toggle('off', Sfx.muted); };
@@ -305,18 +319,28 @@
     if (finished.delivered) placeTopper(finished);
   }
 
-  function endStage() {
-    if (demo || playMode !== 'stage' || !srun || mode !== 'play') return;
+  function offerRevive() {
+    return Boolean(srun && srun.over && !srun.cleared && !srun.revived
+      && (save.stage.revive > 0 || save.stage.purse >= Logic.REVIVE_COST));
+  }
+  function commitStage() {
+    if (!srun || (endInfo && endInfo.committed)) return;
     const finished = srun;
     const result = Logic.recordStage(save, finished);
     save = result.save;
-    endInfo = { run: finished, stage: true, ...result };
-    srun = { ...finished, over: true };
+    const pay = Logic.stagePay(finished);
+    if (pay) save = Logic.grantPurse(save, pay);
+    endInfo = { run: finished, stage: true, ...result, pay, bonus: false, committed: true, pending: false };
     writeSave();
-    mode = 'end';
     if (result.cleared && window.Rank && !/shot=/.test(location.hash)) Rank.submit(Logic.stageRankScore(save), 'stage');
+  }
+  function endStage() {
+    if (demo || playMode !== 'stage' || !srun || mode !== 'play') return;
+    if (srun.cleared || !offerRevive()) commitStage();
+    else endInfo = { run: srun, stage: true, pending: true, pay: 0, bonus: false, committed: false, cleared: false, stars: 0, firstClear: false, unlocked: [], save };
+    mode = 'end';
     showStageEnd();
-    if (finished.cleared) placeTopper(finished);
+    if (srun.cleared) placeTopper(srun);
   }
 
   function placeTopper(r) {
@@ -362,16 +386,18 @@
         <p class="lab">${T.flavorsOf}</p>
         <div class="sws">${swatches(order.flavors)}</div>
         <dl><div><dt>${T.today}</dt><dd>${daily.best}</dd></div><div><dt>${T.best}</dt><dd>${save.best}</dd></div><div><dt>${T.stamps}</dt><dd>${save.stamps}</dd></div></dl>
-        <p class="next">${nextLine()}</p>
+        <p class="next">${T.holdStars(save.stage.purse)} · ${nextLine()}</p>
       </div>
       <button class="go" id="goBtn">${run ? T.resume : T.start}</button>
       <button class="go alt" id="stageBtn">${T.stageBtn(nextStage())}</button>
       <div class="row three"><button class="ghost" id="pickBtn">${T.stagePick}</button>
-      <button class="ghost" id="titleBook">${T.book}</button>
-      <button class="ghost" data-rank-open>${/^en/i.test(navigator.language || '') ? '🏆 Leaderboard' : '🏆 전국 랭킹'}</button></div>`;
+      <button class="ghost" id="shopBtn">${T.shop}</button>
+      <button class="ghost" id="titleBook">${T.book}</button></div>
+      <button class="ghost wide" data-rank-open>${/^en/i.test(navigator.language || '') ? '🏆 Leaderboard' : '🏆 전국 랭킹'}</button>`;
     sheet.classList.add('open');
     $('#stageBtn').addEventListener('click', (e) => { e.stopPropagation(); openStage(nextStage()); });
     $('#pickBtn').addEventListener('click', (e) => { e.stopPropagation(); openPicker(); });
+    $('#shopBtn').addEventListener('click', (e) => { e.stopPropagation(); openShop(); });
     $('#goBtn').addEventListener('click', (e) => { e.stopPropagation(); startRun(); });
     $('#titleBook').addEventListener('click', (e) => { e.stopPropagation(); openBook(); });
     paintHud();
@@ -448,7 +474,7 @@
   function startStage(n) {
     const spec = Logic.stageSpec(n);
     playMode = 'stage';
-    srun = Logic.newStageRun(n, stageFlavors(spec));
+    srun = Logic.newStageRun(n, stageFlavors(spec), save.stage.up);
     world.setTheme(themeOf(spec));
     world.topper.visible = false;
     endInfo = null;
@@ -475,35 +501,157 @@
   }
   function showStageEnd() {
     const info = endInfo;
-    if (window.onestoreAd) window.onestoreAd.atBreak();
     const r = info.run;
+    const pending = info.pending && offerRevive();
+    if (!pending && window.onestoreAd) window.onestoreAd.atBreak();
     const h = Logic.height(r);
-    const st = info.stars;
-    const more = r.cleared && r.stage < Logic.STAGE_CAP;
+    const st = info.stars || 0;
+    const more = info.committed && r.cleared && r.stage < Logic.STAGE_CAP;
+    const extra = info.pay ? info.pay * 2 : 0;
     sheet.innerHTML = `
       <div class="receipt end">
         <p class="date">${r.cleared ? T.cleared(r.stage) : T.failed(r.stage)}</p>
         <p class="tall"><b>${r.stage}</b>${ko ? '단계' : ''}${info.firstClear ? `<span class="stamp">${T.newBest}</span>` : ''}</p>
         <div class="stars">${[1, 2, 3].map((n) => `<i class="${n <= st ? 'on' : ''}"></i>`).join('')}</div>
-        <dl><div><dt>${T.target}</dt><dd>${T.reached(h, r.target)}</dd></div><div><dt>${T.perfect}</dt><dd>${r.perfects}</dd></div><div><dt>★</dt><dd>${Logic.totalStageStars(save)}</dd></div></dl>
-        ${info.unlocked.map((f) => `<p class="unlock"><span class="sw" style="--c:${f.color};--k:${f.cream}"><i></i></span>${T.unlocked(fname(f))}</p>`).join('')}
-        ${save.stage.best ? rankLine() : ''}
+        <dl><div><dt>${T.target}</dt><dd>${T.reached(h, r.target)}</dd></div><div><dt>${T.perfect}</dt><dd>${r.perfects}</dd></div><div><dt>★</dt><dd>${save.stage.purse}</dd></div></dl>
+        ${info.committed && info.pay ? `<p class="goal">${info.bonus ? T.gotStars(info.pay * 3) : T.gotStars(info.pay)}</p>` : ''}
+        ${(info.unlocked || []).map((f) => `<p class="unlock"><span class="sw" style="--c:${f.color};--k:${f.cream}"><i></i></span>${T.unlocked(fname(f))}</p>`).join('')}
+        ${info.committed && save.stage.best ? rankLine() : ''}
       </div>
-      <button class="go" id="stageNext">${more ? T.nextStage : T.retry}</button>
+      ${pending && save.stage.revive > 0 ? `<button class="go" id="reviveBtn">${T.reviveUse(save.stage.revive)}</button>` : ''}
+      ${pending && save.stage.revive < 1 ? `<button class="go" id="reviveBuy">${T.reviveBuy(Logic.REVIVE_COST)}</button>` : ''}
+      ${info.committed && info.pay && !info.bonus ? `<button class="go" id="tripleBtn">${T.moreStars(extra)}</button>` : ''}
+      ${info.committed ? `<button class="go" id="stageNext">${more ? T.nextStage : T.retry}</button>` : `<button class="ghost" id="giveUp">${T.giveUp}</button>`}
       ${more ? `<button class="ghost" id="stageRetry">${T.retry}</button>` : ''}
-      <div class="row three"><button class="ghost" id="endPick">${T.stagePick}</button><button class="ghost" data-rank-open>${/^en/i.test(navigator.language || '') ? '🏆 Leaderboard' : '🏆 전국 랭킹'}</button><button class="ghost" id="stageMenu">${T.menu}</button></div>`;
+      <div class="row three"><button class="ghost" id="endPick">${T.stagePick}</button><button class="ghost" id="endShop">${T.shop}</button><button class="ghost" id="stageMenu">${T.menu}</button></div>`;
+    const firstPaint = !sheet.classList.contains('open');
     sheet.classList.add('open');
-    if (info.unlocked.length) setTimeout(() => Sfx.play('power'), 400);
-    if (r.cleared) Sfx.play('coin');
-    $('#stageNext').addEventListener('click', (e) => { e.stopPropagation(); if (more) openStage(r.stage + 1); else startStage(r.stage); });
+    if (info.unlocked && info.unlocked.length) setTimeout(() => Sfx.play('power'), 400);
+    if (firstPaint && info.committed && r.cleared) Sfx.play('coin');
+    const nextBtn = $('#stageNext');
+    const reviveBtn = $('#reviveBtn');
+    const buyBtn = $('#reviveBuy');
+    const triple = $('#tripleBtn');
+    const give = $('#giveUp');
+    if (nextBtn) nextBtn.addEventListener('click', (e) => { e.stopPropagation(); if (more) openStage(r.stage + 1); else startStage(r.stage); });
     if (more) $('#stageRetry').addEventListener('click', (e) => { e.stopPropagation(); startStage(r.stage); });
+    if (reviveBtn) reviveBtn.addEventListener('click', (e) => { e.stopPropagation(); useRevive(); });
+    if (buyBtn) buyBtn.addEventListener('click', (e) => { e.stopPropagation(); buyReviveAndUse(); });
+    if (triple) triple.addEventListener('click', (e) => { e.stopPropagation(); watchBonus(); });
+    if (give) give.addEventListener('click', (e) => { e.stopPropagation(); commitStage(); showStageEnd(); });
     $('#endPick').addEventListener('click', (e) => { e.stopPropagation(); openPicker(); });
-    $('#stageMenu').addEventListener('click', (e) => { e.stopPropagation(); Sfx.play('back'); showTitle(); });
+    $('#endShop').addEventListener('click', (e) => { e.stopPropagation(); openShop(); });
+    $('#stageMenu').addEventListener('click', (e) => { e.stopPropagation(); if (info.pending) commitStage(); Sfx.play('back'); showTitle(); });
     fillRank();
     paintHud();
   }
+  function useRevive() {
+    const next = Logic.continueRun(srun);
+    const paid = Logic.takeRevive(save);
+    if (!next || !paid) return;
+    save = paid;
+    srun = next;
+    endInfo = null;
+    mode = 'play';
+    falling = null;
+    enter = 1;
+    sheet.classList.remove('open');
+    writeSave();
+    syncCake();
+    paintHud();
+    Sfx.play('power');
+  }
+  function buyReviveAndUse() {
+    const bought = Logic.buy(save, 'revive');
+    if (!bought) return;
+    save = bought;
+    useRevive();
+  }
+  function claimBonus() {
+    if (!endInfo || endInfo.bonus || !endInfo.pay) return;
+    endInfo.bonus = true;
+    endInfo.watching = false;
+    save = Logic.grantPurse(save, endInfo.pay * 2);
+    writeSave();
+    Sfx.play('coin');
+    showStageEnd();
+  }
+  function closeAd(ok) {
+    if (adTick) { clearInterval(adTick); adTick = null; }
+    ad.classList.remove('open');
+    window.__tiertopOnReward = null;
+    if (endInfo) endInfo.watching = false;
+    if (ok) claimBonus();
+    else if (mode === 'end' && endInfo && endInfo.stage) showStageEnd();
+  }
+  function watchBonus() {
+    if (!endInfo || endInfo.bonus || endInfo.watching || !endInfo.pay) return;
+    endInfo.watching = true;
+    const native = window.AndroidAds && typeof window.AndroidAds.showRewarded === 'function';
+    if (native) {
+      window.__tiertopOnReward = (ok) => closeAd(Boolean(ok));
+      try { window.AndroidAds.showRewarded(); return; } catch { window.__tiertopOnReward = null; endInfo.watching = false; }
+    }
+    const total = 4;
+    let left = total;
+    const paint = () => {
+      ad.innerHTML = `<div class="paper"><p class="date">${T.ad}</p><h2>${T.adTitle}</h2><p class="next">${T.adWait}</p><div class="bar"><i style="width:${Math.round(((total - left) / total) * 100)}%"></i></div><p class="tall"><b>${left}</b></p></div>`;
+    };
+    paint();
+    ad.classList.add('open');
+    adTick = setInterval(() => {
+      left -= 1;
+      if (left <= 0) closeAd(true);
+      else paint();
+    }, 1000);
+  }
+  function shopRow(id, title, desc) {
+    const purse = save.stage.purse;
+    let label = T.maxed;
+    let disabled = true;
+    if (id === 'revive') {
+      const lv = save.stage.revive;
+      desc = `${desc} · ${T.owned(lv, Logic.REVIVE_MAX)}`;
+      if (lv < Logic.REVIVE_MAX) { label = `${Logic.REVIVE_COST} ★`; disabled = purse < Logic.REVIVE_COST; }
+    } else {
+      const def = Logic.UPGRADES[id];
+      const lv = save.stage.up[id];
+      desc = `${desc} · ${T.lv(lv, def.max)}`;
+      if (lv < def.max) { label = `${def.costs[lv]} ★`; disabled = purse < def.costs[lv]; }
+    }
+    return `<li><div><b>${title}</b><small>${desc}</small></div><button data-buy="${id}" ${disabled ? 'disabled' : ''}>${label}</button></li>`;
+  }
+  function openShop() {
+    shopOpen = true;
+    Sfx.play('select');
+    book.innerHTML = `
+      <div class="paper">
+        <header><h2>${T.shop}</h2><span>${T.holdStars(save.stage.purse)}</span></header>
+        <ul class="shop">
+          ${shopRow('revive', T.reviveName, T.reviveDesc)}
+          ${shopRow('wide', T.wide, T.wideDesc)}
+          ${shopRow('slow', T.slow, T.slowDesc)}
+          ${shopRow('cushion', T.cushion, T.cushionDesc)}
+        </ul>
+        <button class="go" id="shopClose">${T.close}</button>
+      </div>`;
+    book.classList.add('open');
+    $('#shopClose').addEventListener('click', (e) => { e.stopPropagation(); closeBook(); });
+    book.querySelectorAll('[data-buy]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const next = Logic.buy(save, btn.dataset.buy);
+        if (!next) return;
+        save = next;
+        writeSave();
+        Sfx.play('coin');
+        openShop();
+      });
+    });
+  }
   // 단계 고르기: 장마다 10칸, 끝없는 단계는 열린 곳까지만.
   function openPicker() {
+    shopOpen = false;
     Sfx.play('select');
     const best = save.stage.best;
     const cell = (n) => {
@@ -539,6 +687,7 @@
   }
 
   function openBook() {
+    shopOpen = false;
     Sfx.play('select');
     const open = new Set(Logic.unlockedFlavors(save.totalLayers).map((f) => f.id));
     book.innerHTML = `
@@ -555,8 +704,12 @@
   }
   function closeBook() {
     if (!book.classList.contains('open')) return false;
+    const wasShop = shopOpen;
+    shopOpen = false;
     book.classList.remove('open');
     Sfx.play('back');
+    if (wasShop && mode === 'title') showTitle();
+    else if (wasShop && mode === 'end' && endInfo && endInfo.stage) showStageEnd();
     return true;
   }
 
@@ -703,10 +856,17 @@
 
   window.appFlush = writeSave;
   window.appBack = () => {
+    if (ad.classList.contains('open')) { closeAd(false); return true; }
     if (closeBook()) return true;
     if (mode === 'play' && !demo) { writeSave(); Sfx.play('back'); syncCake(); showTitle(); return true; }
     if (mode === 'title' && $('#introGo')) { Sfx.play('back'); world.setTheme(null); showTitle(); return true; }
-    if (mode === 'end') { world.topper.visible = false; syncCake(); showTitle(); return true; }
+    if (mode === 'end') {
+      if (endInfo && endInfo.pending) commitStage();
+      world.topper.visible = false;
+      syncCake();
+      showTitle();
+      return true;
+    }
     return false;
   };
   document.addEventListener('visibilitychange', () => { if (document.hidden) writeSave(); });
