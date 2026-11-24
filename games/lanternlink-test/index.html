@@ -5,12 +5,42 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <title>등불 골목</title>
   <link rel="stylesheet" href="src/style.css">
-  <script type="module" src="https://h5sdk.onestore.net/lib/v1.1.0/onestore-h5-sdk.min.js"></script>
+  <script>
+// 원스토어 글로벌: 앱이 정해 준 게임 언어(userLanguage)가 저장돼 있으면 기기 언어 대신 그것을 쓴다.
+(function () {
+  try {
+    window.__deviceLang = navigator.language || "";
+    var l = localStorage.getItem("onestore-userLanguage");
+    if (!l) return;
+    Object.defineProperty(Navigator.prototype, "language", { configurable: true, get: function () { return l; } });
+    Object.defineProperty(Navigator.prototype, "languages", { configurable: true, get: function () { return [l]; } });
+  } catch (e) {}
+})();
+</script>
+  <script type="module" src="https://h5sdk.onestore.net/lib/v1.2.0/onestore-h5-sdk.min.js"></script>
   <script type="module">
 // 원스토어 앱 안에서 실행될 때 SDK와 연결합니다. 일반 브라우저에서는 아무 일도 하지 않습니다.
-import { createSDK } from "https://h5sdk.onestore.net/lib/v1.1.0/onestore-h5-sdk.min.js";
+import { createSDK } from "https://h5sdk.onestore.net/lib/v1.2.0/onestore-h5-sdk.min.js";
 
 // 검사 화면이 듣기 시작한 뒤에 인사(hello)를 보내도록 페이지 로드 후 잠깐 기다립니다.
+// 원스토어 글로벌(SDK v1.2.0): userLanguage = 게임 화면 언어, userCountry = 판매 국가. 국내 앱·브라우저에서는 둘 다 없다.
+function applyUserLanguage(info) {
+  window.onestoreInfo = { language: info.userLanguage, country: info.userCountry, locale: info.locale };
+  try {
+    const key = "onestore-userLanguage";
+    const want = info.userLanguage || "";
+    const had = localStorage.getItem(key) || "";
+    if (want === had) return false;
+    if (want) localStorage.setItem(key, want); else localStorage.removeItem(key);
+    const prim = (s) => String(s || "").split("-")[0].toLowerCase();
+    const before = had || window.__deviceLang || "";
+    const after = want || window.__deviceLang || "";
+    if (prim(before) === prim(after) || sessionStorage.getItem("onestore-lang-reloaded")) return false;
+    sessionStorage.setItem("onestore-lang-reloaded", "1");
+    location.reload();
+    return true;
+  } catch (e) { return false; }
+}
 function startOnestore() {
   const sdk = createSDK();
   // 뒤로가기: 원스토어 앱은 게임이 '처리함(true)'이라고 답하지 않으면 게임을 끝낸다.
@@ -24,6 +54,7 @@ function startOnestore() {
   sdk.initializeAsync()
     .then((info) => {
       if (info && info.err) return; // 원스토어 앱 밖(일반 브라우저)
+      if (applyUserLanguage(info)) return; // 언어가 바뀌면 새로고침 후 다시 시작
       sdk.setLoadingProgress(100);
       return sdk.startGameAsync().then(() => setupAds(sdk));
     })
