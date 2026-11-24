@@ -1,7 +1,18 @@
 {
  "title": "Bloom Blocks - Flower Block Puzzle",
- "short": "Drag flower blocks onto the board and clear full lines. Think a move ahead and chase your best score.",
+ "short": "Drag flower blocks onto the board and clear full lines. Plan ahead and chase your best score.",
  "desc": "A block puzzle where you drag pink flower blocks onto the board.\n\n▶ How to play\nDrag the blocks shown below onto the board. Fill a whole row or column and it clears for points.\n\n▶ Think ahead\nThe game ends when no block fits anywhere. Plan which block goes where before you place it.\n\n▶ Best score\nYour best score is kept so you can try to beat it next time. Your current game carries on even after you close it.\n\nA short ad may appear between rounds. No purchases and no sign-up; your records stay on your device.",
- "tags": ["block puzzle", "blocks", "puzzle", "flower", "brain", "casual", "relaxing", "one hand", "line clear", "pastime"],
- "shots": 4
+ "tags": [
+  "block puzzle",
+  "blocks",
+  "puzzle",
+  "flower",
+  "brain",
+  "casual",
+  "relaxing",
+  "one hand",
+  "line clear",
+  "pastime"
+ ],
+ "shots": 2
 }
