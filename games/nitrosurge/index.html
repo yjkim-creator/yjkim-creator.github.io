@@ -231,9 +231,32 @@ function setupAds(sdk) {
     } catch (e) { finish(null, true); }
   }
   window.onestoreAd.atBreak = () => present(false);
-  window.onestoreAd.showReward = (done) => present(true, done);
-  // 임시(2026-11-24): 전면 광고는 뒤로가기로 닫아도 '완료'라서 보상 확인이 안 된다. 보상형 광고 ID 를 받을 때까지 보상 버튼을 끈다.
-  window.onestoreAd.rewardReady = false;
+  // 코인 2배·별 3배: 원스토어 보상형(리워드 비디오) 광고. 끝까지 봐서 status 가 "rewarded" 일 때만 보상한다.
+  // (전면 광고는 뒤로가기로 닫아도 "completed" 라 쓰지 않는다.)
+  const REWARD_ID = "xPYGV-W7TR-43W6-QH9T";
+  let rBusy = false;
+  try { if (sdk.ads.isSupported("rewarded")) sdk.ads.loadRewarded({ placementId: REWARD_ID }); } catch (e) {}
+  window.onestoreAd.showReward = (done) => {
+    if (rBusy || busy) { if (done) done(false); return; }
+    rBusy = true;
+    adBusy = true;
+    let settled = false;
+    const fin = (ok) => {
+      if (settled) return;
+      settled = true;
+      rBusy = false;
+      adBusy = false;
+      adQuietUntil = Date.now() + 800;
+      if (ok) last = Date.now();
+      try { sdk.ads.loadRewarded({ placementId: REWARD_ID }); } catch (e) {}
+      if (done) done(ok);
+    };
+    try {
+      const requestId = "r" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      sdk.ads.showRewardedAsync({ placementId: REWARD_ID, requestId }).then((res) => fin(!!res && res.status === "rewarded"), () => fin(false));
+    } catch (e) { fin(false); }
+  };
+  try { window.onestoreAd.rewardReady = !!sdk.ads.isSupported("rewarded"); } catch (e) { window.onestoreAd.rewardReady = false; }
 }
 if (document.readyState === "complete") setTimeout(startOnestore, 800);
 else window.addEventListener("load", () => setTimeout(startOnestore, 800));
