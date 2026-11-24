@@ -1105,6 +1105,7 @@ const Snd = {
     if (this.ac) { if (this.ac.state === 'suspended' && state !== 'paused') this.ac.resume(); return; }
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
     const ac = this.ac = new AC();
+    if (ac.state === 'suspended') ac.resume();   // 안드로이드 WebView 는 만들자마자 멈춘 상태일 때가 있다
     const gain = (v, to) => { const g = ac.createGain(); g.gain.value = v; if (to) g.connect(to); return g; };
     this.master = gain(0.9, ac.destination);
     const comp = ac.createDynamicsCompressor();
@@ -1545,6 +1546,11 @@ document.querySelectorAll('.tgl').forEach((b) => b.addEventListener('click', () 
   if (k === 'vib' && store.vib) buzz(40);
 }));
 syncToggles();
+// 터치의 pointerdown 은 브라우저가 '사용자 동작'으로 치지 않아 거기서 부른 resume 이 무시된다.
+// 손을 뗄 때(pointerup·touchend·click)마다 멈춘 소리를 다시 깨운다. 그래서 설정을 껐다 켜야 소리가 나던 문제를 막는다.
+for (const ev of ['pointerup', 'touchend', 'click', 'keydown']) {
+  document.addEventListener(ev, () => { if (state !== 'paused') Snd.init(); }, { capture: true, passive: true });
+}
 document.addEventListener('visibilitychange', () => {
   lastFrameAt = performance.now(); if (document.hidden) { pauseGame(); if (Snd.ac) Snd.ac.suspend(); } else if (state !== 'paused' && Snd.ac) Snd.ac.resume(); });
 // 안드로이드 뒤로 가기·앱 전환에서 부른다.
