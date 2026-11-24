@@ -75,7 +75,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 #cd.pop{animation:pop .9s ease-out both}
 @keyframes pop{0%{transform:scale(2.2);opacity:0}20%{transform:scale(1);opacity:1}80%{opacity:1}100%{transform:scale(.8);opacity:0}}
 #banner{position:fixed;left:0;right:0;top:22%;z-index:4;text-align:center;pointer-events:none;opacity:0}
-#banner b{display:block;font:900 italic 30px/1.1 system-ui,sans-serif;letter-spacing:3px;text-shadow:0 0 18px var(--c,var(--cyan))}
+#banner b{display:block;font:900 italic 24px/1.1 system-ui,sans-serif;letter-spacing:3px;text-shadow:0 0 18px var(--c,var(--cyan))}
 #banner span{font:700 12px/2 system-ui,sans-serif;letter-spacing:5px;opacity:.75}
 #banner.show{animation:ban 2.6s ease-out both}
 @keyframes ban{0%{opacity:0;transform:translateX(-40px) skewX(-12deg)}12%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0;transform:translateX(40px)}}
@@ -1229,8 +1229,17 @@ function showBanner(i) {
   b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
 }
 function popup(text, sub, col, x, y, big) {
-  // 겹치지 않게 먼저 뜬 것을 위로 민다. 점수판 자리까지 밀린 것은 바로 사라지게 한다.
-  for (const q of popups) if (q.y > y - 50) { q.y -= 50; if (q.y < H * 0.24) q.life = Math.min(q.life, 0.2); }
+  // 글씨가 내 차와 앞 도로를 가리지 않게, 받은 자리 대신 지평선 위 하늘 띠에 띄운다.
+  // 새 글이 아래에 오고 먼저 뜬 것은 위로 밀리며, 점수판 가까이 밀린 것은 바로 사라진다.
+  // 가로 화면은 위아래가 좁아 비행 중인 차와 닿으므로 오른쪽 하늘에 띄운다.
+  y = HZ - H * 0.06;
+  x = W > H ? W * 0.8 : HW;
+  let top = y;
+  for (const q of popups.slice().sort((a, b) => b.y - a.y)) {
+    if (q.y > top - 38) q.y = top - 38;
+    top = q.y;
+    if (q.y < Math.max(H * 0.19, 128)) q.life = Math.min(q.life, 0.2);
+  }
   popups.push({ text, sub, col, x, y, life: 1.1, big });
 }
 function burst(x, y, n, cols, spd, size, life) {
@@ -1458,7 +1467,7 @@ function update(dt, realDt) {
   for (const r of rings) r.life -= realDt;
   if (rings.length) rings = rings.filter((r) => r.life > 0);
   glint = Math.max(0, glint - realDt * 2.4);
-  for (const p of popups) { p.life -= realDt; p.y -= 50 * realDt; }
+  for (const p of popups) { p.life -= realDt; p.y -= 22 * realDt; }
   popups = popups.filter((p) => p.life > 0);
   shake = Math.max(0, shake - realDt * 2.2);
   flash = Math.max(0, flash - realDt * 2.5);
@@ -1806,9 +1815,9 @@ function render() {
     const k = clamp(p.life / 1.1, 0, 1), sc = 1 + (1 - k) * 0.15 + (k > 0.9 ? (k - 0.9) * 4 : 0);
     ctx.globalAlpha = Math.min(1, k * 2.5);
     ctx.save(); ctx.translate(p.x, p.y); ctx.scale(sc, sc); ctx.transform(1, 0, -0.18, 1, 0, 0);
-    ctx.font = `900 italic ${p.big ? 30 : 24}px system-ui,sans-serif`;
-    ctx.shadowColor = p.col; ctx.shadowBlur = 16; ctx.fillStyle = '#fff'; ctx.fillText(p.text, 0, 0);
-    ctx.font = '900 italic 18px system-ui,sans-serif'; ctx.fillStyle = p.col; ctx.fillText(p.sub, 0, 22);
+    ctx.font = `900 italic ${p.big ? 19 : 16}px system-ui,sans-serif`;
+    ctx.shadowColor = p.col; ctx.shadowBlur = 9; ctx.fillStyle = '#fff'; ctx.fillText(p.text, 0, 0);
+    ctx.font = '900 italic 12px system-ui,sans-serif'; ctx.fillStyle = p.col; ctx.fillText(p.sub, 0, 15);
     ctx.restore();
   }
   ctx.globalAlpha = 1;
