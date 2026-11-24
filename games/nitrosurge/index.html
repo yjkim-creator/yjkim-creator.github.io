@@ -232,7 +232,8 @@ function setupAds(sdk) {
   }
   window.onestoreAd.atBreak = () => present(false);
   window.onestoreAd.showReward = (done) => present(true, done);
-  window.onestoreAd.rewardReady = true;
+  // 임시(2026-11-24): 전면 광고는 뒤로가기로 닫아도 '완료'라서 보상 확인이 안 된다. 보상형 광고 ID 를 받을 때까지 보상 버튼을 끈다.
+  window.onestoreAd.rewardReady = false;
 }
 if (document.readyState === "complete") setTimeout(startOnestore, 800);
 else window.addEventListener("load", () => setTimeout(startOnestore, 800));

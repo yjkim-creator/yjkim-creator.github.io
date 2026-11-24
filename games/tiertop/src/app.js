@@ -535,7 +535,7 @@
     const info = endInfo;
     const r = info.run;
     const pending = info.pending && offerRevive();
-    const offerBonus = info.committed && info.pay && !info.bonus;
+    const offerBonus = info.committed && info.pay && !info.bonus && canReward();
     if (!pending && !offerBonus && window.onestoreAd) window.onestoreAd.atBreak();
     const h = Logic.height(r);
     const st = info.stars || 0;
@@ -554,7 +554,7 @@
       </div>
       ${pending && save.stage.revive > 0 ? `<button class="go" id="reviveBtn">${T.reviveUse(save.stage.revive)}</button>` : ''}
       ${pending && save.stage.revive < 1 ? `<button class="go" id="reviveBuy">${T.reviveBuy(Logic.REVIVE_COST)}</button>` : ''}
-      ${info.committed && info.pay && !info.bonus ? `<button class="go" id="tripleBtn">${T.moreStars(extra)}</button>` : ''}
+      ${offerBonus ? `<button class="go" id="tripleBtn">${T.moreStars(extra)}</button>` : ''}
       ${info.committed ? `<button class="go" id="stageNext">${more ? T.nextStage : T.retry}</button>` : `<button class="ghost" id="giveUp">${T.giveUp}</button>`}
       ${more ? `<button class="ghost" id="stageRetry">${T.retry}</button>` : ''}
       <div class="row three"><button class="ghost" id="endPick">${T.stagePick}</button><button class="ghost" id="endShop">${T.shop}</button><button class="ghost" id="stageMenu">${T.menu}</button></div>`;
@@ -627,6 +627,11 @@
     if (!endInfo || endInfo.bonus || endInfo.broke || endInfo.pending) return;
     endInfo.broke = true;
     try { if (window.onestoreAd) window.onestoreAd.atBreak(); } catch { /* 광고가 없어도 진행 */ }
+  }
+  // 보상 광고를 띄울 수 있을 때만 3배 버튼을 보인다(Android 앱의 showRewarded 또는 원스토어 보상 광고).
+  function canReward() {
+    if (window.AndroidAds && typeof window.AndroidAds.showRewarded === 'function') return true;
+    return !!(window.onestoreAd && window.onestoreAd.rewardReady && typeof window.onestoreAd.showReward === 'function');
   }
   function watchBonus() {
     if (!endInfo || endInfo.bonus || endInfo.watching || !endInfo.pay) return;

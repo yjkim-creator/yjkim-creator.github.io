@@ -105,7 +105,8 @@ function setupAds(sdk) {
   }
   window.onestoreAd.atBreak = () => present(false);
   window.onestoreAd.showReward = (done) => present(true, done);
-  window.onestoreAd.rewardReady = true;
+  // 임시(2026-11-24): 전면 광고는 뒤로가기로 닫아도 '완료'라서 보상 확인이 안 된다. 보상형 광고 ID 를 받을 때까지 보상 버튼을 끈다.
+  window.onestoreAd.rewardReady = false;
 }
 if (document.readyState === "complete") setTimeout(startOnestore, 800);
 else window.addEventListener("load", () => setTimeout(startOnestore, 800));
@@ -119,7 +120,7 @@ else window.addEventListener("load", () => setTimeout(startOnestore, 800));
   <script src="lib/sfx.js"></script>
   <script src="src/logic.js?v=13"></script>
   <script src="src/scene.js?v=13"></script>
-  <script src="src/app.js?v=13"></script>
+  <script src="src/app.js?v=14"></script>
 <script src="src/leaderboard.js"></script>
 <script>window.Rank && Rank.setup(Object.assign({"game": "tiertop", "title": "층층 베이커리 · 최고 높이", "unit": "층", "max": 100000, "theme": {"bg": "rgba(79,49,39,.5)", "panel": "#fffdf8", "text": "#4f3127", "mute": "#8a6152", "accent": "#e2627f", "accentText": "#ffffff", "line": "rgba(79,49,39,.12)", "font": "'Trebuchet MS','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',system-ui,sans-serif"}}, { read: function () { return +(JSON.parse(localStorage.getItem('tiertop-save-v1')||'{}').best)||0; } }));</script>
 </body>
