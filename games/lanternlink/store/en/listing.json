@@ -1,0 +1,18 @@
+{
+ "title": "Lantern Alley: Wire Puzzle",
+ "short": "Turn wire tiles to light every lantern in a night alley. Three new alleys every day.",
+ "desc": "Night has fallen on the alley, and copper wires run tangled from the generator in the middle. Each tap turns a tile a quarter turn, and every wire connected to the generator lights up right away. Light every paper lantern with no loose wire ends left and the alley glows.\n\n· Today's alleys: three puzzles (4×5, 5×6, 6×7) set by the date. Everyone gets the same alleys on the same day.\n· Turn goal: fewer turns earn more stars.\n· Lantern string: each day you light all three of today's alleys, a lantern is hung on a calendar-style string.\n· Free alleys: a practice mode whose alleys grow up to 6×8 as you climb levels.\n· Reset tiles: put a puzzle back to its starting layout at any time.\n\nA short ad may appear between rounds (at most once every 2.5 minutes). No purchases, no sign-in.\n\nThis app was planned and built with the help of AI tools.",
+ "tags": [
+  "puzzle",
+  "wire",
+  "pipe",
+  "connect",
+  "rotate",
+  "logic",
+  "brain",
+  "daily",
+  "relaxing",
+  "lantern"
+ ],
+ "shots": 4
+}

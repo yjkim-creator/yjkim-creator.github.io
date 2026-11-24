@@ -1,0 +1,18 @@
+{
+ "title": "Paper Boat Harbor - A calm boat-escape puzzle",
+ "short": "Sail paper boats out of a crowded dawn harbor in the right order. Three new boards every day.",
+ "desc": "A dawn harbor is packed with paper boats, and each boat can only sail toward its bow. Tap a boat and it glides out to sea. If another boat or a rock is in the way, it bonks and drifts back. Find the right order and empty the harbor.\n\n· Voyage: harbors grow a little at a time, with longer boats and rocks. Every board is checked to be solvable before you see it.\n· Today's Harbor: three new boards each day, the same for everyone on that date.\n· Three lanterns: each bump puts one out, and the lanterns you keep become stars.\n· Beacon: when you're stuck, it lights up one boat that can sail right now.\n· Stamp book: days you clear all three of today's harbors get a stamp. No streak pressure.\n\nA short ad may appear between rounds (at most once every 2.5 minutes). No purchases, no sign-in.\n\nThis game was planned and built with the help of AI tools.",
+ "tags": [
+  "puzzle",
+  "escape",
+  "boat",
+  "arrow",
+  "order",
+  "logic",
+  "brain",
+  "relaxing",
+  "calm",
+  "daily"
+ ],
+ "shots": 4
+}
