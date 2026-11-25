@@ -69,13 +69,14 @@ function startOnestore() {
     .catch((e) => console.warn("onestore sdk", e && (e.reason || e.message)));
 }
 // 전면 광고: 자연스러운 쉬는 구간에서만, 2분 30초에 한 번 이하로 보여 줍니다.
-const AD_ID = "xRT9Q-W37H-RJ5U-7F23";
+const AD_ID = ""; // 아동용 앱이라 광고 없음(2026-11-25 결정)
 const AD_GAP = 150000;
 window.onestoreAd = { atBreak() {} };
 let adOpen = false;
 let adBusy = false;
 let adQuietUntil = 0;
 function setupAds(sdk) {
+  if (!AD_ID) return;
   try { if (!sdk.ads || !sdk.ads.isSupported("interstitial")) return; } catch (e) { return; }
   let last = Date.now();
   let busy = false;
