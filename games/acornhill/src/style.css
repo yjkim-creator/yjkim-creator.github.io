@@ -175,3 +175,50 @@ body.shot .paper { animation: none; }
   .tally .score { font-size: 32px; }
   .flip, .help { padding-right: 12px; font-size: 14px; }
 }
+
+/* ---------- 2026-11-25 되돌리기, 이어하기, 가게, 다람쥐 집 ---------- */
+.coach { z-index: 5; }
+.undo { position: relative; display: grid; grid-template-columns: auto auto; align-items: center; gap: 2px 6px; min-height: 52px; padding: 6px 12px 6px 9px; border-radius: 14px; align-self: end;
+  color: var(--bark); font-weight: 900; font-size: 13.5px; background: var(--kraft); box-shadow: inset 0 -3px 0 rgba(110, 65, 34, .3), 0 4px 0 rgba(74, 42, 20, .35); }
+.undo .ico { grid-row: 1 / 3; font-size: 22px; line-height: 1; }
+.undo b { grid-column: 2; grid-row: 1; text-align: left; }
+.undo em { grid-column: 2; grid-row: 2; font: 800 11px/1 var(--num); font-style: normal; opacity: .8; text-align: left; }
+.undo:disabled { opacity: .5; filter: grayscale(.6); }
+.undo:active:not(:disabled) { transform: translateY(2px); }
+.pop.gold-pop { color: #fff3c4; -webkit-text-stroke: 2px #9a6a0c; }
+.cont .col { display: grid; gap: 8px; margin: 10px 0 4px; }
+.go small { display: block; font-size: 11px; font-weight: 700; opacity: .85; margin-top: 1px; }
+.go { padding-top: 4px; padding-bottom: 4px; }
+.go:disabled { opacity: .5; filter: grayscale(.6); }
+.go.gold { color: var(--bark); background: linear-gradient(180deg, #ffe08a, var(--gold)); box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .18), 0 3px 0 #b57a12; margin: 4px 0 8px; }
+.go.wide { width: 100%; margin-top: 8px; }
+.today .att { margin-top: 3px; color: var(--maple); }
+.shop-row { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-bottom: 1px dotted rgba(110, 65, 34, .35); }
+.shop-row .ic { width: 34px; font-size: 24px; text-align: center; flex: 0 0 auto; }
+.shop-row > div { flex: 1; min-width: 0; }
+.shop-row b { display: block; font-size: 14px; font-weight: 900; }
+.shop-row b i { font-style: normal; font-size: 11.5px; font-weight: 800; color: var(--maple); margin-left: 4px; }
+.shop-row small { display: block; font-size: 11.5px; font-weight: 700; color: var(--bark-2); }
+.buy { min-width: 64px; min-height: 40px; padding: 0 10px; border-radius: 10px; font-weight: 900; font-size: 14px; color: var(--cream); background: linear-gradient(180deg, #e0603f, var(--maple)); box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .25), 0 2px 0 #8f2a18; }
+.buy:disabled { filter: grayscale(.7); opacity: .55; }
+.buy:active:not(:disabled) { transform: translateY(2px); }
+.maxed { min-width: 64px; text-align: center; font-weight: 900; font-size: 13px; color: var(--moss); }
+.backs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.bk { display: grid; justify-items: center; gap: 2px; padding: 6px 2px; border-radius: 10px; background: rgba(255, 255, 255, .35); }
+.bk img { width: 38px; height: 52px; border-radius: 6px; box-shadow: 0 2px 0 rgba(74, 42, 20, .3); }
+.bk span { font-size: 11px; font-weight: 900; }
+.bk small { font-size: 10.5px; font-weight: 800; color: var(--bark-2); }
+.bk.on { outline: 3px solid var(--gold); background: rgba(242, 179, 61, .25); }
+.bk:disabled { opacity: .5; }
+.house { position: relative; height: 200px; margin-top: 18px; border-radius: 8px 8px 12px 12px; overflow: visible;
+  background: linear-gradient(180deg, #f6dcb0 0 66%, #9c6234 66% 68%, #b97a44 68%), #f6dcb0; box-shadow: inset 0 0 0 4px #7a4723; }
+.house .roof { position: absolute; left: -10px; right: -10px; top: -16px; height: 22px; border-radius: 6px 6px 2px 2px; background: repeating-linear-gradient(90deg, #8a4a22 0 14px, #9c5a2c 14px 28px); box-shadow: 0 3px 0 rgba(58, 33, 15, .3); }
+.house .win { position: absolute; left: 6%; top: 18%; width: 22%; height: 30%; border-radius: 40px 40px 4px 4px; background: linear-gradient(180deg, #a9d3e8, #e6f3f7); box-shadow: inset 0 0 0 4px #7a4723; }
+.house .sq { position: absolute; left: 40%; top: 64%; transform: translate(-50%, -50%); font-size: 36px; }
+.hi { position: absolute; transform: translate(-50%, -50%); font-size: 28px; line-height: 1; filter: drop-shadow(0 2px 0 rgba(58, 33, 15, .25)); }
+.hi.off { filter: grayscale(1) brightness(.35); opacity: .22; }
+@media (max-width: 380px) {
+  .undo b { display: none; }
+  .undo { padding: 6px 10px; }
+}
+.paper.still { animation: none; }

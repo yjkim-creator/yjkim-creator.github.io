@@ -9,21 +9,42 @@
   const CONFIG = { apiKey: 'AIzaSyDIyZn6P40oPDt-Hhn5K-KxErH6AgUApFc', projectId: 'kungkunglab-rank' };
   const READY = !!CONFIG.apiKey;
   const DOCS = `https://firestore.googleapis.com/v1/projects/${CONFIG.projectId}/databases/(default)/documents`;
-  const KO = /^ko/i.test(navigator.language || '') || !/^en/i.test(navigator.language || '');
+  // 기기 언어: 일본어면 ja, 영어면 en, 그 밖(한국어 포함)은 ko.
+  const NAV = navigator.language || '';
+  const LANG = /^ja/i.test(NAV) ? 'ja' : /^en/i.test(NAV) ? 'en' : 'ko';
+  const KO = LANG === 'ko';
   const PROFILE = 'kk-rank-profile';
-  const T = KO ? {
+  const TEXT = {};
+  TEXT.ko = {
     rank: '전국 랭킹', week: '이번 주', all: '전체', weekNote: '매주 월요일 0시에 새로 시작해요', me: '내 기록', myRank: (n) => `${n}위`, aboutRank: (n) => `약 ${n}위`, none: '아직 기록이 없어요',
     empty: '첫 번째 주인공이 되어 보세요!', offline: '인터넷에 연결되면 랭킹을 볼 수 있어요.\n게임은 그대로 즐길 수 있어요.',
     loading: '불러오는 중…', close: '닫기', privacy: '광고 개인정보 설정', nameTitle: '랭킹에 쓸 별명', nameHint: '한글·영문·숫자 2~10자. 별명과 점수만 저장돼요.',
     save: '저장', change: '별명 바꾸기', bad: '쓸 수 없는 별명이에요', short: '2~10자로 적어 주세요', pending: '연결되면 올라가요',
     notReady: '랭킹 준비 중이에요',
-  } : {
+    wipe: '내 기록 지우기', wipeTitle: '내 기록을 지울까요?', wipeBody: '서버에 올린 이 게임의 별명과 점수를 모두 지우고, 랭킹용 익명 계정도 없앱니다. 되돌릴 수 없어요.\n기기에 저장된 게임 진행은 그대로 남아요.',
+    wipeGo: '지우기', cancel: '취소', wiping: '지우는 중…', wiped: '서버의 내 기록을 모두 지웠어요.', wipeFail: '지금은 지울 수 없어요. 인터넷 연결을 확인하고 다시 해 주세요.',
+  };
+  TEXT.en = {
     rank: 'Leaderboard', week: 'This week', all: 'All time', weekNote: 'Resets every Monday 00:00 KST', me: 'My best', myRank: (n) => `#${n}`, aboutRank: (n) => `~#${n}`, none: 'No record yet',
     empty: 'Be the first one on the board!', offline: 'Connect to the internet to see the leaderboard.\nThe game still works offline.',
     loading: 'Loading…', close: 'Close', privacy: 'Ad privacy settings', nameTitle: 'Your nickname', nameHint: '2–10 letters or numbers. Only the nickname and score are stored.',
     save: 'Save', change: 'Change nickname', bad: 'That nickname is not allowed', short: 'Use 2–10 characters', pending: 'Will upload when online',
     notReady: 'Leaderboard coming soon',
+    wipe: 'Delete my data', wipeTitle: 'Delete your data?', wipeBody: 'This removes your nickname and every score you uploaded for this game, and deletes the anonymous leaderboard account. This cannot be undone.\nYour game progress on this device stays.',
+    wipeGo: 'Delete', cancel: 'Cancel', wiping: 'Deleting…', wiped: 'Your data on the server has been deleted.', wipeFail: 'Could not delete right now. Check your connection and try again.',
   };
+  TEXT.ja = {
+    rank: 'ランキング', week: '今週', all: '総合', weekNote: '毎週月曜 0:00(日本時間)にリセット', me: '自己ベスト', myRank: (n) => `${n}位`, aboutRank: (n) => `約${n}位`, none: 'まだ記録がありません',
+    empty: '最初のランカーになろう!', offline: 'インターネットに接続するとランキングを見られます。\nゲームはオフラインでも遊べます。',
+    loading: '読み込み中…', close: '閉じる', privacy: '広告のプライバシー設定', nameTitle: 'ランキング用ニックネーム', nameHint: 'ひらがな・カタカナ・英数字で2〜10文字。ニックネームとスコアだけが保存されます。',
+    save: '保存', change: 'ニックネーム変更', bad: 'このニックネームは使えません', short: '2〜10文字で入力してください', pending: '接続するとアップロードされます',
+    notReady: 'ランキングは準備中です',
+    wipe: '自分の記録を削除', wipeTitle: '記録を削除しますか?', wipeBody: 'このゲームでアップロードしたニックネームとスコアをすべて削除し、ランキング用の匿名アカウントも削除します。元に戻せません。\n端末に保存されたゲームの進行はそのまま残ります。',
+    wipeGo: '削除する', cancel: 'キャンセル', wiping: '削除中…', wiped: 'サーバー上の記録をすべて削除しました。', wipeFail: '今は削除できません。接続を確認してもう一度お試しください。',
+  };
+  const T = TEXT[LANG];
+  // title·unit 은 문자열이거나 { ko, en, ja } 객체일 수 있다.
+  const pick = (v) => (v && typeof v === 'object' ? (v[LANG] || v.en || v.ko || '') : (v || ''));
 
   let cfg = null;
   let token = null;
@@ -67,12 +88,22 @@
     '운영자', '관리자', '쿵쿵랩', '원스토어', '구글', 'admin', 'onestore', 'google', 'kungkung',
   ];
   const JAMO = ['ㅅㅂ', 'ㅆㅂ', 'ㅂㅅ', 'ㅈㄴ', 'ㅈㄹ', 'ㅄ', 'ㅗ'];
+  // 일본어 별명(가나)용. 가타카나는 히라가나로 바꿔서 비교한다.
+  const BAD_JA = [
+    'しね', 'ころす', 'ころせ', 'くたばれ', 'きえろ', 'ちんこ', 'ちんぽ', 'まんこ', 'おまんこ', 'せっくす', 'えっち', 'やりまん', 'やりちん', 'ぱいぱん',
+    'おっぱい', 'れいぷ', 'ごうかん', 'うんこ', 'くそ', 'ばか', 'あほ', 'きちがい', 'がいじ', 'しょうがい', 'ちょん', 'しなじん', 'ちゃんころ',
+    'ぶす', 'でぶ', 'はげ', 'ぽるの', 'なちす', 'ひとらー', 'うんえい', 'かんりしゃ', 'ぐーぐる', 'くんくん',
+  ];
+  const hira = (s) => s.replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
   function nameProblem(raw) {
     const name = String(raw || '').trim().replace(/\s+/g, ' ');
     if (name.length < 2 || name.length > 10) return T.short;
-    if (!/^[가-힣a-zA-Z0-9_ ]+$/.test(name)) return T.bad;
+    // 서버 규칙(firestore.rules)과 같은 글자만 허용한다.
+    if (!/^[가-힣a-zA-Zぁ-んァ-ヶー0-9_ ]+$/.test(name)) return T.bad;
     const flat = name.toLowerCase().replace(/[\s_0-9]/g, '').replace(/1/g, 'i').replace(/0/g, 'o');
     if (BAD.some((w) => flat.includes(w))) return T.bad;
+    const kana = hira(flat).replace(/ー/g, '');
+    if (BAD_JA.some((w) => kana.includes(w.replace(/ー/g, '')))) return T.bad;
     if (JAMO.some((w) => name.includes(w))) return T.bad;
     return '';
   }
@@ -183,6 +214,39 @@
     return n ? Number(n.integerValue) : 0;
   }
 
+  // 내 기록 지우기: 서버의 이 게임 점수 문서, 쓰기 간격 문서, 익명 계정을 모두 지우고 기기의 별명도 지운다.
+  // (App Store 심사 5.1.1(v) 계정 삭제 요건. firestore.rules 에 본인 문서 삭제 허용이 게시돼 있어야 한다.)
+  async function wipe() {
+    if (READY && profile().refresh) {
+      const tk = await auth();
+      const uid = profile().uid;
+      const head = { 'Content-Type': 'application/json', Authorization: `Bearer ${tk}` };
+      const mineQ = {
+        structuredQuery: {
+          from: [{ collectionId: 'scores' }],
+          where: { fieldFilter: { field: { fieldPath: 'uid' }, op: 'EQUAL', value: { stringValue: uid } } },
+          select: { fields: [{ fieldPath: 'uid' }] }, limit: 400,
+        },
+      };
+      for (let i = 0; i < 50; i++) {
+        const rows = await json(`${DOCS}/boards/${cfg.game}:runQuery`, { method: 'POST', headers: head, body: JSON.stringify(mineQ) }, 12000);
+        const names = rows.filter((x) => x.document).map((x) => x.document.name);
+        if (!names.length) break;
+        await json(`${DOCS}:commit`, { method: 'POST', headers: head, body: JSON.stringify({ writes: names.map((n) => ({ delete: n })) }) }, 12000);
+        if (names.length < 400) break;
+      }
+      const base = `projects/${CONFIG.projectId}/databases/(default)/documents`;
+      await json(`${DOCS}:commit`, { method: 'POST', headers: head, body: JSON.stringify({ writes: [{ delete: `${base}/limits/${uid}` }] }) }, 12000);
+      await json(`https://identitytoolkit.googleapis.com/v1/accounts:delete?key=${CONFIG.apiKey}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: tk }),
+      }, 12000);
+    }
+    try { localStorage.removeItem(PROFILE); } catch (e) { /* */ }
+    store.set(key(), { ...rec(), sent: 0, wsent: 0 });
+    token = null;
+    tokenUntil = 0;
+  }
+
   // ---------- 화면
   const fmt = (n) => (cfg.format ? cfg.format(n) : Number(n).toLocaleString());
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -255,9 +319,32 @@
       if (a === 'save') saveName();
       if (a === 'privacy') { try { window.AndroidAds.privacyOptions(); } catch (err) { /* */ } }
       if (a === 'week' || a === 'all') { tab = a; show(); }
+      if (a === 'wipe') askWipe();
+      if (a === 'wipeGo') doWipe();
+      if (a === 'back') show();
     }));
     return root;
   }
+
+  function askWipe() {
+    shell(`<h2>${T.wipeTitle}</h2><p class="kk-msg" style="padding:14px 4px">${T.wipeBody}</p>
+      <div class="kk-row"><button data-kk="back">${T.cancel}</button><button class="kk-go" data-kk="wipeGo">${T.wipeGo}</button></div>`);
+  }
+  let wiping = false;
+  async function doWipe() {
+    if (wiping) return;
+    wiping = true;
+    shell(`<h2>${T.wipeTitle}</h2><p class="kk-msg">${T.wiping}</p>`);
+    const mine = root;
+    let msg = T.wiped;
+    try { await wipe(); } catch (e) { msg = T.wipeFail; }
+    wiping = false;
+    if (root !== mine) return;
+    shell(`<h2>${T.rank}</h2><p class="kk-msg">${msg}</p><div class="kk-row"><button class="kk-go" data-kk="close">${T.close}</button></div>`);
+  }
+  const wipeLink = () => (profile().name || profile().refresh
+    ? `<p class="kk-hint" style="text-align:center;margin-top:4px"><button data-kk="wipe" style="background:none;border:0;color:inherit;text-decoration:underline;font:inherit;font-size:12px;padding:4px">${T.wipe}</button></p>`
+    : '');
 
   // 유럽 등 동의가 필요한 지역의 Android 앱에서만 광고 동의를 다시 고를 수 있는 링크를 보여 준다.
   function privacyLink() {
@@ -303,10 +390,10 @@
     const weekly = tab === 'week';
     const mineBest = weekly ? r.wbest : r.best;
     const mineSent = weekly ? r.wsent : r.sent;
-    const head = `<h2>🏆 ${T.rank}</h2><p class="kk-sub">${esc(cfg.title || '')}</p>
+    const head = `<h2>🏆 ${T.rank}</h2><p class="kk-sub">${esc(pick(cfg.title))}</p>
       <div class="kk-tabs"><button data-kk="week" class="${weekly ? 'on' : ''}">${T.week}</button><button data-kk="all" class="${weekly ? '' : 'on'}">${T.all}</button></div>`;
-    const meBox = (txt) => `<div class="kk-me"><div><small>${esc(p.name)}</small>${mineBest ? `${fmt(mineBest)} ${esc(cfg.unit || '')}` : T.none}</div><div>${txt}</div></div>`;
-    const foot = `${weekly ? `<p class="kk-hint" style="text-align:center">${T.weekNote}</p>` : ''}<div class="kk-row"><button data-kk="name">${T.change}</button><button class="kk-go" data-kk="close">${T.close}</button></div>${privacyLink()}`;
+    const meBox = (txt) => `<div class="kk-me"><div><small>${esc(p.name)}</small>${mineBest ? `${fmt(mineBest)} ${esc(pick(cfg.unit))}` : T.none}</div><div>${txt}</div></div>`;
+    const foot = `${weekly ? `<p class="kk-hint" style="text-align:center">${T.weekNote}</p>` : ''}<div class="kk-row"><button data-kk="name">${T.change}</button><button class="kk-go" data-kk="close">${T.close}</button></div>${wipeLink()}${privacyLink()}`;
     shell(`${head}${meBox('')}<p class="kk-msg">${T.loading}</p>${foot}`);
     const mine = root;
     const myTab = tab;
@@ -350,7 +437,8 @@
       upload();
     },
     open: show,
-    label: KO ? '🏆 전국 랭킹' : '🏆 Leaderboard',
+    label: LANG === 'ja' ? '🏆 ランキング' : KO ? '🏆 전국 랭킹' : '🏆 Leaderboard',
+    lang: LANG,
     close,
     get isOpen() { return !!root; },
   };

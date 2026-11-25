@@ -99,6 +99,6 @@ startOnestore();
   <script src="src/scene.js"></script>
   <script src="src/app.js"></script>
 <script src="src/leaderboard.js"></script>
-<script>window.Rank && Rank.setup(Object.assign({"game": "acornhill", "title": "도토리 언덕 · 한 판 최고 점수", "unit": "점", "max": 5000, "theme": {"accent": "#C8742E"}}, { read: function () { try { return Number(Logic.best(Logic.sanitize(JSON.parse(localStorage.getItem('acornhill-v1'))))) || 0; } catch (e) { return 0; } } }));</script>
+<script>window.Rank && Rank.setup(Object.assign({"game": "acornhill", "title": {"ko": "도토리 언덕 · 한 판 최고 점수", "en": "Acorn Hill · Best single run", "ja": "どんぐりの丘・1回のベストスコア"}, "unit": {"ko": "점", "en": "pts", "ja": "点"}, "max": 5000, "theme": {"accent": "#C8742E"}}, { read: function () { try { return Number(Logic.best(Logic.sanitize(JSON.parse(localStorage.getItem('acornhill-v1'))))) || 0; } catch (e) { return 0; } } }));</script>
 </body>
 </html>

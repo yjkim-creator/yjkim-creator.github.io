@@ -78,13 +78,39 @@
 
   const W = 200;
   const H = 272;
-  function cardFace(card) {
+  // kind: '' 보통, 'gold' 황금 도토리 패, 'key' 열쇠 패, 'lock' 아직 잠긴 자물쇠 패.
+  function drawKey(g, x, y, s) {
+    g.save(); g.translate(x, y); g.scale(s / 40, s / 40);
+    g.strokeStyle = '#7a4a12'; g.fillStyle = '#f2b33d'; g.lineWidth = 3;
+    g.beginPath(); g.arc(-10, 0, 11, 0, Math.PI * 2); g.fill(); g.stroke();
+    g.fillStyle = '#7a4a12'; g.beginPath(); g.arc(-10, 0, 4, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#f2b33d';
+    g.fillRect(0, -3.5, 22, 7); g.strokeRect(0, -3.5, 22, 7);
+    g.fillRect(14, 3, 4, 7); g.fillRect(8, 3, 4, 5);
+    g.restore();
+  }
+  function drawLock(g, x, y, s) {
+    g.save(); g.translate(x, y); g.scale(s / 100, s / 100);
+    g.lineWidth = 12; g.strokeStyle = '#d9d2c4';
+    g.beginPath(); g.arc(0, -18, 26, Math.PI, 0); g.lineTo(26, 0); g.moveTo(-26, 0); g.lineTo(-26, -18); g.stroke();
+    g.fillStyle = '#f2b33d'; g.strokeStyle = '#7a4a12'; g.lineWidth = 5;
+    roundRect(g, -40, -4, 80, 62, 12); g.fill(); g.stroke();
+    g.fillStyle = '#7a4a12';
+    g.beginPath(); g.arc(0, 20, 9, 0, Math.PI * 2); g.fill(); g.fillRect(-4, 22, 8, 20);
+    g.restore();
+  }
+  function cardFace(card, kind = '') {
     const rank = (card % 13) + 1;
     const suit = Math.floor(card / 13);
     const color = SUIT_COLORS[suit];
     return Kit3D.canvasTexture(W, H, (g) => {
       roundRect(g, 0, 0, W, H, 22);
-      g.fillStyle = '#fbf2dc'; g.fill();
+      if (kind === 'gold') {
+        const gr = g.createLinearGradient(0, 0, W, H);
+        gr.addColorStop(0, '#fff0b8'); gr.addColorStop(0.5, '#f7cf5e'); gr.addColorStop(1, '#e6a92c');
+        g.fillStyle = gr;
+      } else g.fillStyle = '#fbf2dc';
+      g.fill();
       g.save(); g.clip();
       g.strokeStyle = 'rgba(160,110,60,.10)'; g.lineWidth = 2;
       for (let y = 10; y < H; y += 9) { g.beginPath(); g.moveTo(0, y); g.bezierCurveTo(60, y + 5, 140, y - 5, W, y + 2); g.stroke(); }
@@ -97,29 +123,68 @@
       g.fillText(String(rank), rank >= 10 ? 62 : 50, 56);
       drawSuit(g, suit, 160, 46, 40);
       drawSuit(g, suit, W / 2, 178, 100);
+      if (kind === 'gold') {
+        roundRect(g, 4, 4, W - 8, H - 8, 18); g.strokeStyle = '#b57a12'; g.lineWidth = 6; g.stroke();
+        g.fillStyle = '#fffbe8';
+        [[30, 110, 9], [172, 120, 7], [40, 240, 7], [168, 236, 10]].forEach(([x, y, r]) => {
+          g.beginPath(); g.moveTo(x, y - r * 2); g.lineTo(x + r * 0.5, y - r * 0.5); g.lineTo(x + r * 2, y); g.lineTo(x + r * 0.5, y + r * 0.5);
+          g.lineTo(x, y + r * 2); g.lineTo(x - r * 0.5, y + r * 0.5); g.lineTo(x - r * 2, y); g.lineTo(x - r * 0.5, y - r * 0.5); g.closePath(); g.fill();
+        });
+      } else if (kind === 'key') {
+        g.fillStyle = '#fff4c8'; g.strokeStyle = '#b57a12'; g.lineWidth = 4;
+        g.beginPath(); g.arc(156, 50, 36, 0, Math.PI * 2); g.fill(); g.stroke();
+        drawKey(g, 160, 50, 62);
+      } else if (kind === 'lock') {
+        roundRect(g, 0, 0, W, H, 22); g.fillStyle = 'rgba(40,24,12,.55)'; g.fill();
+        drawLock(g, W / 2, 150, 120);
+      }
     });
   }
-  let backTex = null;
-  function cardBack() {
-    if (backTex) return backTex;
-    backTex = Kit3D.canvasTexture(W, H, (g) => {
+  // 패 뒷면 스킨(다람쥐 가게에서 산다). 기본은 참나무(oak).
+  const BACK_LOOK = {
+    oak: { c0: '#9a5a2c', c1: '#6e3d1d', line: '#f2c98a', suit: 0 },
+    maple: { c0: '#e0603f', c1: '#9c2f1c', line: '#ffd9a8', suit: 1 },
+    moon: { c0: '#34407a', c1: '#141a3a', line: '#f6e3a0', suit: -1 },
+    snow: { c0: '#e8f3f8', c1: '#9cc3d8', line: '#ffffff', suit: -2 },
+    gold: { c0: '#ffe08a', c1: '#c98a1c', line: '#fff7d6', suit: 0 },
+  };
+  const backTexes = {};
+  function cardBack(id = 'oak') {
+    const look = BACK_LOOK[id] || BACK_LOOK.oak;
+    if (backTexes[id]) return backTexes[id];
+    const backTex = Kit3D.canvasTexture(W, H, (g) => {
       roundRect(g, 0, 0, W, H, 22);
       const grad = g.createLinearGradient(0, 0, W, H);
-      grad.addColorStop(0, '#9a5a2c'); grad.addColorStop(1, '#6e3d1d');
+      grad.addColorStop(0, look.c0); grad.addColorStop(1, look.c1);
       g.fillStyle = grad; g.fill();
       g.save(); g.clip();
       g.strokeStyle = 'rgba(255,220,170,.13)'; g.lineWidth = 3;
       for (let y = -20; y < H + 20; y += 11) { g.beginPath(); g.moveTo(0, y); g.bezierCurveTo(70, y + 12, 120, y - 10, W, y + 6); g.stroke(); }
       g.restore();
       roundRect(g, 12, 12, W - 24, H - 24, 14);
-      g.strokeStyle = '#f2c98a'; g.lineWidth = 4; g.stroke();
+      g.strokeStyle = look.line; g.lineWidth = 4; g.stroke();
       g.setLineDash([6, 8]);
       roundRect(g, 22, 22, W - 44, H - 44, 10); g.lineWidth = 2; g.stroke();
       g.setLineDash([]);
-      g.fillStyle = '#f2c98a';
+      g.fillStyle = look.line;
       g.beginPath(); g.arc(W / 2, H / 2, 46, 0, Math.PI * 2); g.globalAlpha = 0.25; g.fill(); g.globalAlpha = 1;
-      drawSuit(g, 0, W / 2, H / 2, 70);
+      if (look.suit >= 0) drawSuit(g, look.suit, W / 2, H / 2, 70);
+      else if (look.suit === -1) { // 달과 별
+        g.fillStyle = '#f6e3a0'; g.beginPath(); g.arc(W / 2, H / 2, 32, 0, Math.PI * 2); g.fill();
+        g.fillStyle = look.c1; g.beginPath(); g.arc(W / 2 + 14, H / 2 - 8, 28, 0, Math.PI * 2); g.fill();
+        g.fillStyle = '#fff6d0';
+        [[50, 60], [150, 80], [60, 210], [140, 200], [100, 40], [100, 236]].forEach(([x, y]) => { g.beginPath(); g.arc(x, y, 3, 0, Math.PI * 2); g.fill(); });
+      } else { // 눈송이
+        g.strokeStyle = '#5f8fb0'; g.lineWidth = 5; g.lineCap = 'round';
+        for (let k = 0; k < 6; k += 1) {
+          const a = (k / 6) * Math.PI * 2; const ex = W / 2 + Math.cos(a) * 36; const ey = H / 2 + Math.sin(a) * 36;
+          g.beginPath(); g.moveTo(W / 2, H / 2); g.lineTo(ex, ey); g.stroke();
+          const mx = W / 2 + Math.cos(a) * 22; const my = H / 2 + Math.sin(a) * 22;
+          g.beginPath(); g.moveTo(mx + Math.cos(a + 0.8) * 10, my + Math.sin(a + 0.8) * 10); g.lineTo(mx, my); g.lineTo(mx + Math.cos(a - 0.8) * 10, my + Math.sin(a - 0.8) * 10); g.stroke();
+        }
+      }
     });
+    backTexes[id] = backTex;
     return backTex;
   }
 
@@ -278,10 +343,22 @@
     const edgeMat = Kit3D.toon('#e5c48c');
     const backMat = new T.MeshLambertMaterial({ map: cardBack(), alphaTest: 0.5 });
     const faceMats = {};
-    const faceMat = (card) => {
-      if (!faceMats[card]) faceMats[card] = new T.MeshLambertMaterial({ map: cardFace(card), alphaTest: 0.5 });
-      return faceMats[card];
+    const faceMat = (card, kind = '') => {
+      const key = `${card}|${kind}`;
+      if (!faceMats[key]) faceMats[key] = new T.MeshLambertMaterial({ map: cardFace(card, kind), alphaTest: 0.5 });
+      return faceMats[key];
     };
+    function setBack(id) {
+      // 텍스처만 바꾼다(needsUpdate는 셰이더를 다시 만들어 느리다. 맵이 늘 있으니 필요 없다).
+      backMat.map = cardBack(id);
+    }
+    // 언덕 자리 i의 패가 어떤 특수 패인지.
+    function kindOf(state, i) {
+      if (state.gold && state.gold.includes(i)) return 'gold';
+      if (state.lock && state.lock[1] === i) return 'key';
+      if (state.lock && state.lock[0] === i && Logic.isLocked(state, i)) return 'lock';
+      return '';
+    }
     const pool = Array.from({ length: 52 }, () => {
       const m = new T.Mesh(cardGeo, [edgeMat, edgeMat, backMat, backMat, edgeMat, edgeMat]);
       m.castShadow = true;
@@ -291,9 +368,10 @@
       scene.add(m);
       return m;
     });
-    function dress(mesh, card) {
+    function dress(mesh, card, kind = '') {
       mesh.userData.card = card;
-      mesh.material = [edgeMat, edgeMat, faceMat(card), backMat, edgeMat, edgeMat];
+      mesh.userData.kind = kind;
+      mesh.material = [edgeMat, edgeMat, faceMat(card, kind), backMat, edgeMat, edgeMat];
     }
 
     // 언덕 위 자리: 모든 패를 같은 기울기의 비탈면에 얹는다. 앞줄일수록 조금씩 높여 뒷줄 패 위에 겹친다.
@@ -338,6 +416,9 @@
       mound = { cz: -(lay.rows - 1) * ROW - 0.4, h: 1.5, sx: Math.max(4.6, (lay.maxX - lay.minX) * HALF * 0.75 + 1.6), sz: 3.2 };
       shapeGround();
       fitPlane(lay);
+      // 10단계 묶음마다 땅 빛깔이 바뀐다(31단계부터). 앞 단계는 흰색 그대로.
+      const theme = state.mode === 'map' ? Logic.themeOf(state.key) : null;
+      ground.material.color.set(theme ? theme.ground : '#ffffff');
       trees.forEach((t) => { t.position.y = height(t.position.x, t.position.z); });
       cur = { lay, slotMesh: [], stockMesh: [], pileMesh: [] };
       let used = 0;
@@ -345,7 +426,7 @@
       pool.forEach((m) => { m.visible = false; m.userData.tween = null; m.userData.slot = -1; m.userData.where = ''; });
       state.cards.forEach((card, i) => {
         const m = take();
-        dress(m, card);
+        dress(m, card, kindOf(state, i));
         m.userData.slot = i; m.userData.where = 'hill';
         cur.slotMesh.push(m);
         if (state.removed[i]) { m.visible = false; return; }
@@ -418,6 +499,8 @@
       state.cards.forEach((_, i) => {
         if (state.removed[i]) return;
         const m = cur.slotMesh[i];
+        const kind = kindOf(state, i);
+        if (m.userData.kind !== kind) { dress(m, state.cards[i], kind); m.userData.nudge = 0.4; }
         const pose = slotPose(cur.lay, cur.lay.slots[i]);
         const free = Logic.isFree(state, i);
         const flipped = Math.abs(m.rotation.z - pose.rot.z) > 1;
@@ -546,7 +629,7 @@
     });
 
     Object.assign(world, {
-      layout, playCard, drawCard, refreshFaces, nudge, slotAt, screenOf, slotWorld, fit, placeCamera,
+      layout, playCard, drawCard, refreshFaces, nudge, slotAt, screenOf, slotWorld, fit, placeCamera, setBack,
       pilePos: () => PILE_POS.clone(), stockPos: () => STOCK_POS.clone(),
       squirrel: {
         hop() { sqAnim.hop = 1; },
@@ -566,5 +649,5 @@
     return world;
   }
 
-  window.HillScene = { build, drawSuit, SUIT_COLORS };
+  window.HillScene = { build, drawSuit, SUIT_COLORS, cardBack, BACK_IDS: Object.keys(BACK_LOOK) };
 })();
