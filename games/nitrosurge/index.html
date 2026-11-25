@@ -979,9 +979,11 @@ function buildTrack() {
     if (Math.abs(cu) > 3) segments[i].sprites.push({ img: cu > 0 ? SPR.chevR : SPR.chevL, x: cu > 0 ? -1.18 : 1.18, w: 0.32 });
   }
   // 니트로·수리·날개. 점프대는 먹히지 않고 밟을 때마다 짧게 띄운다.
+  // 수리(하트)는 확률에 맡기면 고정 시드 트랙에 하나도 안 나와서, 8번째 아이템마다 확실히 놓는다(한 바퀴 5개쯤).
+  let pickN = 0;
   for (let i = 250; i < L - 50; i += 60 + Math.floor(rnd() * 90)) {
     const roll = rnd();
-    const type = roll < 0.07 ? 'heart' : roll < 0.18 ? 'wing' : 'orb';
+    const type = pickN++ % 8 === 4 ? 'heart' : roll < 0.18 ? 'wing' : 'orb';
     segments[i].pickups.push({ z: i * SEG + SEG / 2, x: LANES[Math.floor(rnd() * 3)], type, lap: -1 });
   }
   for (let i = 420; i < L - 80; i += 240 + Math.floor(rnd() * 180)) {
