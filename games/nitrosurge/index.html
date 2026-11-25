@@ -388,13 +388,13 @@ const TXT = {
   ja: { up: '強化', car: 'クルマ', wing: '翼', fly: '飛行時間', flyD: (s) => `黄色い翼で${s}秒飛行`, max: 'MAX', use: '装備', on: '装備中',
         earn: (n) => `+${n} 🪙`, dbl: (n) => `▶ 広告を見て2倍 (+${n})`, dblOk: (n) => `+${n} 🪙 x2!`, dblFail: '今は広告を読み込めません' },
 }[LANG];
-const FLY_COST = [150, 300, 500, 800, 1200, 1800];   // 비행 강화 1~6단계 값
+const FLY_COST = [1500, 3000, 5000, 8000, 12000, 18000];   // 비행 강화 1~6단계 값
 const flyTime = (lv) => 4 + 0.5 * lv;
 const nitroDrain = (lv) => 0.26 - 0.016 * lv;      // 부스트 때 초당 니트로 소모(5단계 0.18)
 const maxHearts = (lv) => 3 + lv;                  // 차체 내구: 하트 3 → 5
 const coinMult = (lv) => 1 + 0.1 * lv;             // 코인 보너스: +10%씩
 const engMult = () => 1 + 0.02 * store.eng;        // 엔진 튜닝: 점수 +2%씩, 끝없음
-const engCost = (lv) => Math.round(500 * Math.pow(1.15, lv) / 5) * 5;
+const engCost = (lv) => Math.round(5000 * Math.pow(1.15, lv) / 50) * 50;
 const tankPct = (lv) => Math.round((nitroDrain(0) / nitroDrain(lv) - 1) * 100);
 // 강화 항목. key 는 store 에 저장되는 단계, cost[i] 는 i → i+1 단계 값.
 const UP_TXT = {
@@ -416,9 +416,9 @@ const UP_TXT = {
 }[LANG];
 const UPGRADES = [
   { key: 'fly', cost: FLY_COST, now: (lv) => flyTime(lv) + 's', next: flyTime },
-  { key: 'tank', icon: '⚡', cost: [200, 400, 700, 1100, 1600], now: (lv) => '+' + tankPct(lv) + '%', next: tankPct },
-  { key: 'hp', icon: '🛡️', cost: [1500, 3000], now: (lv) => '♥' + maxHearts(lv), next: maxHearts },
-  { key: 'cb', icon: '🪙', cost: [300, 600, 1000, 1500, 2200], now: (lv) => '+' + Math.round((coinMult(lv) - 1) * 100) + '%', next: (lv) => Math.round((coinMult(lv) - 1) * 100) },
+  { key: 'tank', icon: '⚡', cost: [2000, 4000, 7000, 11000, 16000], now: (lv) => '+' + tankPct(lv) + '%', next: tankPct },
+  { key: 'hp', icon: '🛡️', cost: [15000, 40000], now: (lv) => '♥' + maxHearts(lv), next: maxHearts },
+  { key: 'cb', icon: '🪙', cost: [3000, 6000, 10000, 15000, 22000], now: (lv) => '+' + Math.round((coinMult(lv) - 1) * 100) + '%', next: (lv) => Math.round((coinMult(lv) - 1) * 100) },
   { key: 'eng', icon: '🔧', inf: true, cost: engCost, now: (lv) => 'Lv ' + lv, next: (lv) => 2 * lv },
 ];
 const upCost = (u, lv) => (u.inf ? u.cost(lv) : u.cost[lv]);
@@ -426,19 +426,19 @@ const upTop = (u) => (u.inf ? Infinity : u.cost.length);
 // 자동차: 기본 하이퍼카의 보라 몸체만 다른 색으로 바꾼다(hue 이동, 채도·밝기 배율).
 const CARS = [
   { id: 'ntr', price: 0, ab: {}, d: { ko: '기본 차', en: 'Standard car', ja: '標準車' }, hue: 0, sat: 1, lit: 1, name: { ko: 'NTR·01 바이올렛', en: 'NTR-01 Violet', ja: 'NTR-01 バイオレット' } },
-  { id: 'blaze', price: 1000, ab: { near: 0.5 }, d: { ko: '니어미스 니트로 +50%', en: 'Near-miss nitro +50%', ja: 'ニアミスのニトロ +50%' }, hue: 0.27, sat: 1.1, lit: 1.05, name: { ko: '블레이즈 레드', en: 'Blaze Red', ja: 'ブレイズレッド' } },
-  { id: 'volt', price: 3000, ab: { orb: 0.3, near: 0.5 }, d: { ko: '니트로 아이템 2배 · 니어미스 니트로 +50%', en: 'Nitro pickups x2 · near-miss nitro +50%', ja: 'ニトロアイテム2倍・ニアミスのニトロ +50%' }, hue: -0.35, sat: 1, lit: 1.05, name: { ko: '볼트 그린', en: 'Volt Green', ja: 'ボルトグリーン' } },
-  { id: 'frost', price: 8000, ab: { hp: 1, guard: 1.5, orb: 0.3 }, d: { ko: '하트 +1 · 충돌 뒤 무적 +1.5초 · 니트로 아이템 2배', en: '+1 heart · +1.5s safe time after a crash · nitro pickups x2', ja: 'ハート+1・衝突後の無敵 +1.5秒・ニトロアイテム2倍' }, hue: -0.19, sat: 0.9, lit: 1.2, name: { ko: '프로스트 블루', en: 'Frost Blue', ja: 'フロストブルー' } },
-  { id: 'gold', price: 20000, ab: { coin: 0.5, hp: 1, drain: 0.25, spd: 0.06 }, d: { ko: '코인 +50% · 하트 +1 · 니트로 소모 -25% · 최고 속도 +6%', en: '+50% coins · +1 heart · nitro use -25% · top speed +6%', ja: 'コイン +50%・ハート+1・ニトロ消費 -25%・最高速度 +6%' }, hue: 0.39, sat: 1.15, lit: 1.3, name: { ko: '골드 러시', en: 'Gold Rush', ja: 'ゴールドラッシュ' } },
-  { id: 'shadow', price: 50000, ab: { coin: 1, hp: 2, drain: 0.4, spd: 0.15, guard: 1.5, orb: 0.3 }, d: { ko: '코인 2배 · 하트 +2 · 니트로 소모 -40% · 최고 속도 +15% · 무적 +1.5초', en: 'Coins x2 · +2 hearts · nitro use -40% · top speed +15% · +1.5s safe time', ja: 'コイン2倍・ハート+2・ニトロ消費 -40%・最高速度 +15%・無敵 +1.5秒' }, hue: 0, sat: 0.12, lit: 0.85, name: { ko: '카본 섀도', en: 'Carbon Shadow', ja: 'カーボンシャドウ' } },
+  { id: 'blaze', price: 10000, ab: { near: 0.5 }, d: { ko: '니어미스 니트로 +50%', en: 'Near-miss nitro +50%', ja: 'ニアミスのニトロ +50%' }, hue: 0.27, sat: 1.1, lit: 1.05, name: { ko: '블레이즈 레드', en: 'Blaze Red', ja: 'ブレイズレッド' } },
+  { id: 'volt', price: 30000, ab: { orb: 0.3, near: 0.5 }, d: { ko: '니트로 아이템 2배 · 니어미스 니트로 +50%', en: 'Nitro pickups x2 · near-miss nitro +50%', ja: 'ニトロアイテム2倍・ニアミスのニトロ +50%' }, hue: -0.35, sat: 1, lit: 1.05, name: { ko: '볼트 그린', en: 'Volt Green', ja: 'ボルトグリーン' } },
+  { id: 'frost', price: 80000, ab: { hp: 1, guard: 1.5, orb: 0.3 }, d: { ko: '하트 +1 · 충돌 뒤 무적 +1.5초 · 니트로 아이템 2배', en: '+1 heart · +1.5s safe time after a crash · nitro pickups x2', ja: 'ハート+1・衝突後の無敵 +1.5秒・ニトロアイテム2倍' }, hue: -0.19, sat: 0.9, lit: 1.2, name: { ko: '프로스트 블루', en: 'Frost Blue', ja: 'フロストブルー' } },
+  { id: 'gold', price: 200000, ab: { coin: 0.5, hp: 1, drain: 0.25, spd: 0.06 }, d: { ko: '코인 +50% · 하트 +1 · 니트로 소모 -25% · 최고 속도 +6%', en: '+50% coins · +1 heart · nitro use -25% · top speed +6%', ja: 'コイン +50%・ハート+1・ニトロ消費 -25%・最高速度 +6%' }, hue: 0.39, sat: 1.15, lit: 1.3, name: { ko: '골드 러시', en: 'Gold Rush', ja: 'ゴールドラッシュ' } },
+  { id: 'shadow', price: 500000, ab: { coin: 1, hp: 2, drain: 0.4, spd: 0.15, guard: 1.5, orb: 0.3 }, d: { ko: '코인 2배 · 하트 +2 · 니트로 소모 -40% · 최고 속도 +15% · 무적 +1.5초', en: 'Coins x2 · +2 hearts · nitro use -40% · top speed +15% · +1.5s safe time', ja: 'コイン2倍・ハート+2・ニトロ消費 -40%・最高速度 +15%・無敵 +1.5秒' }, hue: 0, sat: 0.12, lit: 0.85, name: { ko: '카본 섀도', en: 'Carbon Shadow', ja: 'カーボンシャドウ' } },
 ];
 // 날개: 그라데이션 세 색(뿌리→끝), 앞전 빛, 바닥 고리 색
 const WINGS = [
   { id: 'gold', price: 0, ab: {}, d: { ko: '기본 날개', en: 'Standard wings', ja: '標準の翼' }, c: ['255,214,90', '255,150,20', '255,80,0'], edge: '255,190,70', ring: '#ffe066', name: { ko: '골든 윙', en: 'Golden Wings', ja: 'ゴールデンウイング' } },
-  { id: 'neon', price: 400, ab: { fly: 0.5 }, d: { ko: '비행 시간 +0.5초', en: 'Flight +0.5s', ja: '飛行時間 +0.5秒' }, c: ['150,250,255', '0,200,255', '0,90,255'], edge: '0,229,255', ring: '#7cf3ff', name: { ko: '네온 윙', en: 'Neon Wings', ja: 'ネオンウイング' } },
-  { id: 'flame', price: 800, ab: { shock: 0.4 }, d: { ko: '착지 충격파 범위 +40%', en: 'Landing shockwave +40%', ja: '着地衝撃波 +40%' }, c: ['255,190,90', '255,70,20', '210,0,50'], edge: '255,100,40', ring: '#ff7a3a', name: { ko: '플레임 윙', en: 'Flame Wings', ja: 'フレイムウイング' } },
-  { id: 'angel', price: 1200, ab: { skyN: 0.08 }, d: { ko: '비행 중 니트로 충전', en: 'Recharge nitro while flying', ja: '飛行中にニトロ回復' }, c: ['255,255,255', '225,235,255', '170,190,255'], edge: '240,245,255', ring: '#ffffff', name: { ko: '엔젤 윙', en: 'Angel Wings', ja: 'エンジェルウイング' } },
-  { id: 'venom', price: 1600, ab: { land: 0.5 }, d: { ko: '착지하면 니트로 +50%', en: 'Landing gives +50% nitro', ja: '着地でニトロ +50%' }, c: ['230,140,255', '160,50,255', '255,43,214'], edge: '210,100,255', ring: '#e07aff', name: { ko: '베놈 윙', en: 'Venom Wings', ja: 'ヴェノムウイング' } },
+  { id: 'neon', price: 4000, ab: { fly: 0.5 }, d: { ko: '비행 시간 +0.5초', en: 'Flight +0.5s', ja: '飛行時間 +0.5秒' }, c: ['150,250,255', '0,200,255', '0,90,255'], edge: '0,229,255', ring: '#7cf3ff', name: { ko: '네온 윙', en: 'Neon Wings', ja: 'ネオンウイング' } },
+  { id: 'flame', price: 8000, ab: { shock: 0.4 }, d: { ko: '착지 충격파 범위 +40%', en: 'Landing shockwave +40%', ja: '着地衝撃波 +40%' }, c: ['255,190,90', '255,70,20', '210,0,50'], edge: '255,100,40', ring: '#ff7a3a', name: { ko: '플레임 윙', en: 'Flame Wings', ja: 'フレイムウイング' } },
+  { id: 'angel', price: 15000, ab: { skyN: 0.08 }, d: { ko: '비행 중 니트로 충전', en: 'Recharge nitro while flying', ja: '飛行中にニトロ回復' }, c: ['255,255,255', '225,235,255', '170,190,255'], edge: '240,245,255', ring: '#ffffff', name: { ko: '엔젤 윙', en: 'Angel Wings', ja: 'エンジェルウイング' } },
+  { id: 'venom', price: 25000, ab: { land: 0.5 }, d: { ko: '착지하면 니트로 +50%', en: 'Landing gives +50% nitro', ja: '着地でニトロ +50%' }, c: ['230,140,255', '160,50,255', '255,43,214'], edge: '210,100,255', ring: '#e07aff', name: { ko: '베놈 윙', en: 'Venom Wings', ja: 'ヴェノムウイング' } },
 ];
 const curWing = () => WINGS.find((w) => w.id === store.wing) || WINGS[0];
 const curCar = () => CARS.find((c) => c.id === store.car) || CARS[0];
@@ -1007,6 +1007,8 @@ const SAFE_AHEAD = 24000;  // 첫 장애물은 이만큼 앞에 놓는다(그리
 const SPAWN_AHEAD = 30000; // 그리기 거리 안쪽 이만큼 앞까지 미리 채운다
 const START_SAFE = 3.5;    // 'GO!' 뒤 이 시간(초) 동안은 부딪혀도 다치지 않는다
 let safeT = 0;
+let shoulderT = 0, shoulderWarned = false;   // 갓길에 머문 시간, 경고를 띄웠는지
+const SHOULDER_HIT = 1.5;                     // 갓길에 이만큼(초) 머물면 하트 1개를 잃는다
 function unbucket(c) {
   if (c.si >= 0) { const a = segments[c.si].cars; const k = a.indexOf(c); if (k >= 0) a.splice(k, 1); }
   c.si = -1;
@@ -1319,7 +1321,7 @@ const stars = Array.from({ length: 130 }, () => ({ x: Math.random(), y: Math.ran
 function resetRun() {
   position = 0; speed = 0; playerX = 0; steer = 0; hearts = heartCap(); nitro = 0.5; boosting = false; boostVis = 0;
   score = 0; meters = 0; combo = 0; comboT = 0; maxCombo = 0; nearCount = 0; topSpeed = 0; invuln = 0;
-  lap = 0; zoneIdx = 0; maxSpeed = MAXS; particles = []; popups = []; flash = 0; shake = 0; safeT = 0;
+  lap = 0; zoneIdx = 0; maxSpeed = MAXS; particles = []; popups = []; flash = 0; shake = 0; safeT = 0; shoulderT = 0; shoulderWarned = false;
   airT = 0; airKind = 0; airVis = 0; wingVis = 0; glint = 0; rings = [];
   FLY_T = flyTime(store.fly) + perk('fly');
   for (const s of segments) for (const p of s.pickups) p.lap = -1;
@@ -1618,6 +1620,16 @@ function crash(car) {
   updateHearts();
   if (hearts <= 0) { state = 'dying'; dyingT = 1.6; }
 }
+function shoulderHit() {
+  hearts--; invuln = 1.0; shake = 0.7; flash = 0.7; combo = 0; comboT = 0;
+  speed = Math.min(speed, maxSpeed * 0.3);
+  burst(HW, carBaseY - halfRoadPx * 0.1, 20, ['#fff', '#ff4d6d', '#ffb000'], 300, 3, 0.6);
+  popup('DAMAGE', '♥ -1', '#ff4d6d', HW, popY(0.55), true);
+  Snd.sfx('crash');
+  cleanStreak = 0;
+  updateHearts();
+  if (hearts <= 0) { state = 'dying'; dyingT = 1.6; }
+}
 function landShock(kind) {
   const big = kind === 2;
   invuln = Math.max(invuln, big ? 0.4 : 0.22);
@@ -1714,6 +1726,17 @@ function update(dt, realDt) {
   playerX = clamp(playerX, -2.1, 2.1);
   skyOffset += pSeg.curve * pct * dt * 0.12;
   if (offroad && !airborne && speed > 1000) shake = Math.max(shake, 0.12);
+  // 갓길 패널티: 콤보가 끊기고 니트로가 새며, 점수가 오르지 않고, 오래 머물면 차가 상한다.
+  if (playing && offroad && !airborne) {
+    shoulderT += dt; combo = 0; comboT = 0;
+    nitro = Math.max(0, nitro - dt * 0.12);
+    if (!shoulderWarned && shoulderT > 0.3) {
+      shoulderWarned = true;
+      popup('SHOULDER!', { ko: '도로로 돌아오세요', en: 'Back on the road', ja: '道路に戻って' }[LANG], '#ff4d6d', HW, popY(0.5), true);
+      Snd.sfx('beep');
+    }
+    if (shoulderT >= SHOULDER_HIT && invuln <= 0 && safeT <= 0) { shoulderT = 0; shoulderHit(); }
+  } else if (!offroad) { shoulderT = 0; shoulderWarned = false; }
 
   // 차량
   const frozen = state === 'countdown';
@@ -1783,7 +1806,7 @@ function update(dt, realDt) {
   if (playing || state === 'dying') {
     const dm = speed * dt * M_PER_U;
     meters += dm;
-    if (playing) score += dm * (1 + Math.min(combo, 9)) * (boosting ? 1.5 : 1) * (airKind === 2 && airT > 0 ? 1.8 : 1) * engMult();
+    if (playing && !(offroad && !airborne)) score += dm * (1 + Math.min(combo, 9)) * (boosting ? 1.5 : 1) * (airKind === 2 && airT > 0 ? 1.8 : 1) * engMult();
     topSpeed = Math.max(topSpeed, speed * M_PER_U * 3.6);
     const zi = Math.floor(meters / ZONE_M);
     if (zi !== zoneIdx) { zoneIdx = zi; showBanner(zi); }
