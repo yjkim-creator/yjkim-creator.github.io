@@ -363,3 +363,35 @@
     show();
   }, true);
 })();
+
+// 닉네임 입력창 확대 방지(2026-11-25): iOS 는 입력창을 누르면 화면을 키우고, 키보드가 닫혀도 되돌리지 않는다.
+// 화면 배율을 1배로 묶고, 입력이 끝나 키보드가 닫히면 배율과 위치를 처음으로 되돌린다.
+(function () {
+  if (typeof window === 'undefined' || window.__kkNoZoom) return;
+  window.__kkNoZoom = true;
+  let flip = false;
+  let last = 0;
+  const fix = () => {
+    const m = document.querySelector('meta[name="viewport"]');
+    if (!m) return;
+    const c = (m.getAttribute('content') || '').trim();
+    const want = /maximum-scale/i.test(c) ? c.replace(/maximum-scale\s*=\s*[\d.]+/i, 'maximum-scale=1') : `${c}, maximum-scale=1`;
+    flip = !flip; // 같은 값이면 브라우저가 다시 적용하지 않으므로 끝에 공백을 번갈아 붙인다.
+    m.setAttribute('content', want + (flip ? ' ' : ''));
+  };
+  const ours = (t) => !!(t && t.tagName === 'INPUT' && t.closest && t.closest('.kk-rank'));
+  const reset = () => {
+    fix();
+    try { window.scrollTo(0, 0); document.documentElement.scrollTop = 0; document.body.scrollTop = 0; } catch (e) { /* */ }
+  };
+  const later = () => { setTimeout(reset, 60); setTimeout(reset, 400); };
+  document.addEventListener('focusin', (e) => { if (ours(e.target)) { last = Date.now(); fix(); } }, true);
+  document.addEventListener('focusout', (e) => { if (ours(e.target)) { last = Date.now(); later(); } }, true);
+  // 저장을 누르면 입력창이 그대로 사라져 focusout 이 안 올 수 있다 → 키보드가 닫히며 화면 크기가 바뀔 때도 되돌린다.
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+      if (Date.now() - last < 3000 && !ours(document.activeElement)) later();
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fix); else fix();
+})();
