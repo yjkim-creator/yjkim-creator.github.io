@@ -503,7 +503,6 @@
       world.squirrel.shake();
     }
     showResult(st, gained, starCount, before);
-    if (!demo && !shotMode && window.onestoreAd) window.onestoreAd.atBreak();
   }
   function extraLines() {
     if (!lastResult) return '';
@@ -605,6 +604,8 @@
       });
       return;
     }
+    // 전면 광고는 '다음/다시' 단추를 누를 때만(2배 보상을 봤으면 안 띄움). 결과 화면이 뜨는 순간·메뉴에서는 띄우지 않는다.
+    if ((act === 'next' || act === 'retry') && !shotMode && !(lastResult && lastResult.doubled) && window.onestoreAd) window.onestoreAd.atBreak();
     if (act === 'next') begin(makeRound('map', Number(state.key) + 1));
     else if (act === 'retry') begin(Logic.freshRound(dealOf(state), { mode: state.mode, key: state.key, seed: state.seed, wild: Logic.startWild(save) }));
     else if (act === 'menu') openPanel();

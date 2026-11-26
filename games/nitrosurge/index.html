@@ -1360,7 +1360,7 @@ window.addEventListener('keydown', (e) => {
   Snd.init();
   if (KEYMAP[e.code]) { keys[KEYMAP[e.code]] = true; e.preventDefault(); }
   if (e.code === 'Escape' || e.code === 'KeyP') { if (state === 'play' || state === 'countdown') pauseGame(); else if (state === 'paused') resumeGame(); }
-  if (e.code === 'Enter') { if (state === 'title' || state === 'over') startGame(); else if (state === 'paused') resumeGame(); }
+  if (e.code === 'Enter') { if (state === 'title' || state === 'over') { if (state === 'over') takeBreak(); startGame(); } else if (state === 'paused') resumeGame(); }
 });
 window.addEventListener('keyup', (e) => { if (KEYMAP[e.code]) keys[KEYMAP[e.code]] = false; });
 window.addEventListener('blur', () => { keys.l = keys.r = keys.n = false; ptr.clear(); });
@@ -1413,7 +1413,7 @@ function watchReward(done) {
   }
   done(false);
 }
-// 2배를 안 보고 결과 화면을 떠날 때 평소의 전면 광고(150초 간격)를 한 번 부른다.
+// 2배를 안 보고 '다시하기'를 누를 때만 평소의 전면 광고(150초 간격)를 한 번 부른다. 메뉴·상점·뒤로 가기에서는 부르지 않는다.
 function takeBreak() {
   if (!breakDue) return;
   breakDue = false;
@@ -1434,8 +1434,7 @@ function gameOver() {
   const offer = earned > 0 && rewardReady();
   $('dblBtn').hidden = !offer; $('dblBtn').disabled = false;
   $('dblBtn').textContent = TXT.dbl(earned);
-  breakDue = true;
-  if (!offer) takeBreak();
+  breakDue = true; // 전면 광고는 '다시하기'를 누를 때만(takeBreak)
   const sc = Math.floor(score);
   if (window.Rank && !/shot=/.test(location.hash)) Rank.submit(sc);
   const isBest = sc > store.best;
@@ -1449,7 +1448,7 @@ function gameOver() {
 }
 $('playBtn').onclick = startGame;
 $('retryBtn').onclick = () => { takeBreak(); startGame(); };
-$('menuBtn').onclick = () => { takeBreak(); toMenu(); };
+$('menuBtn').onclick = () => { breakDue = false; toMenu(); };
 $('dblBtn').onclick = () => {
   if (dblState !== 0 || earned <= 0) return;
   dblState = 1; $('dblBtn').disabled = true; breakDue = false;
@@ -1504,7 +1503,7 @@ function renderShop() {
   $('shopList').innerHTML = L.join('');
 }
 function openShop(from) {
-  shopFrom = from; takeBreak();
+  shopFrom = from;
   show('title', false); show('over', false); show('shop', true);
   renderShop();
 }
@@ -1563,7 +1562,7 @@ window.NS = {
     if (!$('shop').hidden) { closeShop(); return true; }
     if (state === 'play' || state === 'countdown') { pauseGame(); return true; }
     if (state === 'paused') { resumeGame(); return true; }
-    if (state === 'over') { takeBreak(); toMenu(); return true; }
+    if (state === 'over') { breakDue = false; toMenu(); return true; }
     return false;
   },
   pause() { pauseGame(); if (Snd.ac) Snd.ac.suspend(); },

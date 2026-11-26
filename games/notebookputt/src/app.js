@@ -577,11 +577,13 @@
       if (g.hit && !SHOT) window.Haptics && Haptics.buzz('big');
     }
     openSheet('hole', `${stamp(name, sub)}${goal}<button class="primary" id="goNext">${label}</button>`);
-    $('goNext').addEventListener('click', advance);
+    $('goNext').addEventListener('click', () => advance(true));
   }
 
-  function advance() {
+  // byButton: '다음' 단추를 눌렀을 때만 true(뒤로 가기는 false).
+  function advance(byButton) {
     if (!pendingOut) return;
+    const out = pendingOut;
     sfx.tap();
     pendingOut = null;
     closeSheet();
@@ -589,7 +591,8 @@
     resetBall();
     layout();
     refresh();
-    if (window.onestoreAd) window.onestoreAd.atBreak();
+    // 전면 광고는 판이 끝나고 '다음 층' 또는 오늘 코스의 '결과'로 넘어갈 때만. 오늘의 코스 중간 홀 사이·뒤로 가기에서는 띄우지 않는다.
+    if (byButton === true && (state.mode === 'ladder' || out.roundDone) && window.onestoreAd) window.onestoreAd.atBreak();
   }
 
   function scorecard(date, scores) {

@@ -655,6 +655,8 @@
           if (apply(res, sfx.pearl)) {
             closeOverlay();
             showToast(T.released(res.gain), 'pearl');
+            // 전면 광고는 바다로 돌려보내 새로 시작할 때만(다른 창을 닫을 때는 띄우지 않음).
+            if (window.onestoreAd) window.onestoreAd.atBreak();
           }
         });
         panel.append(go);
@@ -686,7 +688,6 @@
     overlay.innerHTML = '';
     renderSheet();
     renderTop();
-    if (window.onestoreAd) window.onestoreAd.atBreak();
   }
   overlay.addEventListener('click', (ev) => { if (ev.target === overlay) { closeOverlay(); sfx.soft(); } });
   document.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', () => {

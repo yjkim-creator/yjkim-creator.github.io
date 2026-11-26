@@ -428,7 +428,6 @@
   function showEnd() {
     const info = endInfo;
     const pending = Boolean(info.pending && run && run.over && !run.revived);
-    if (!pending && window.onestoreAd) window.onestoreAd.atBreak();
     const h = Logic.height(info.run);
     if (!pending && window.Rank && !/shot=/.test(location.hash)) Rank.submit(h);
     const st = Logic.stars(info.run);
@@ -452,7 +451,7 @@
     if (info.unlocked.length) setTimeout(() => Sfx.play('power'), 400);
     if (info.run.delivered) Sfx.play('coin');
     const againBtn = $('#againBtn');
-    if (againBtn) againBtn.addEventListener('click', (e) => { e.stopPropagation(); run = null; startRun(); });
+    if (againBtn) againBtn.addEventListener('click', (e) => { e.stopPropagation(); try { if (window.onestoreAd) window.onestoreAd.atBreak(); } catch { /* 광고가 없어도 진행 */ } run = null; startRun(); });
     const endRevive = $('#reviveBtn');
     const endBuy = $('#reviveBuy');
     const endGive = $('#giveUp');
@@ -536,7 +535,6 @@
     const r = info.run;
     const pending = info.pending && offerRevive();
     const offerBonus = info.committed && info.pay && !info.bonus && canReward();
-    if (!pending && !offerBonus && window.onestoreAd) window.onestoreAd.atBreak();
     const h = Logic.height(r);
     const st = info.stars || 0;
     const more = info.committed && r.cleared && r.stage < Logic.STAGE_CAP;
@@ -575,7 +573,7 @@
     if (give) give.addEventListener('click', (e) => { e.stopPropagation(); commitStage(); showStageEnd(); });
     $('#endPick').addEventListener('click', (e) => { e.stopPropagation(); openPicker(); });
     $('#endShop').addEventListener('click', (e) => { e.stopPropagation(); openShop(); });
-    $('#stageMenu').addEventListener('click', (e) => { e.stopPropagation(); if (info.pending) commitStage(); finishBreak(); Sfx.play('back'); showTitle(); });
+    $('#stageMenu').addEventListener('click', (e) => { e.stopPropagation(); if (info.pending) commitStage(); Sfx.play('back'); showTitle(); });
     fillRank();
     paintHud();
   }
@@ -622,7 +620,7 @@
     if (ok) claimBonus();
     else if (mode === 'end' && endInfo && endInfo.stage) showStageEnd();
   }
-  // 3배를 안 보고 결과 화면을 떠나면, 그때 평소의 전면 광고를 한 번 보여 준다.
+  // 전면 광고는 '다음 단계/다시' 단추를 누를 때만(3배 보상을 봤으면 안 띄움). 메뉴·뒤로 가기·결과 화면이 뜨는 순간에는 띄우지 않는다.
   function finishBreak() {
     if (!endInfo || endInfo.bonus || endInfo.broke || endInfo.pending) return;
     endInfo.broke = true;
@@ -914,7 +912,6 @@
         if (playMode === 'stage') commitStage();
         else commitDaily(false);
       }
-      finishBreak();
       world.topper.visible = false;
       syncCake();
       showTitle();
