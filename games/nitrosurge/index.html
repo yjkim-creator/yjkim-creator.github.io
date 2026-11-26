@@ -2284,17 +2284,36 @@ function showCd(txt, go) {
 // ── 루프 ──
 // 일부 안드로이드 웹뷰는 requestAnimationFrame을 부르지 않거나 화면 크기를 늦게(또는 0으로) 알려 준다.
 // 그래서 크기는 매 프레임 여러 출처에서 다시 읽고, rAF가 멈추면 타이머로 루프를 이어 간다.
-const perf = { u: 0, r: 0, h: 0, wt: 0, wf: 0, gpuAvg: 0, tried: false };
-// 1.5초마다 평균 프레임 간격을 보고, 느리면 CPU 캔버스를 한 번 시험한 뒤 해상도를 낮춘다.
-function tuneQuality(_, real) {
-  perf.wt += real; perf.wf++;
+const perf = { u: 0, r: 0, h: 0, wt: 0, wf: 0, skip: 0, trial: null, done: false };
+// 게임 중 1.5초마다 평균 프레임 간격을 본다. 느리면 해상도를 한 단계 내려 보고(다 내려도 느리면 CPU 캔버스),
+// 실제로 빨라졌을 때만 그대로 둔다. 빨라지지 않으면 되돌리고 이번 실행에서는 더 손대지 않는다.
+// 예전에는 30fps로 고르게 도는 기기(절전 모드, 30Hz 화면)도 '느림'으로 보고 CPU 캔버스를 시험하고
+// 해상도를 끝까지(0.8배) 내려서, 화면이 뭉개지고 시험하는 동안 크게 버벅였다.
+const SLOW_FRAME = 0.028;
+function setQuality(q) { if (q !== quality) { quality = q; sizedW = -1; } }
+function tuneQuality(raw) {
+  const reset = () => { perf.wt = 0; perf.wf = 0; };
+  if (perf.done || state !== 'play') { reset(); return; }          // 메뉴·결과·광고 화면은 재지 않는다
+  if (perf.skip > 0) { perf.skip--; reset(); return; }              // 바꾼 직후 다시 그리는 프레임은 뺀다
+  if (raw > 0.25) { reset(); return; }                              // 광고·앱 전환으로 끊긴 구간은 버린다
+  perf.wt += raw; perf.wf++;
   if (perf.wt < 1.5) return;
   const avg = perf.wt / perf.wf;
-  perf.wt = 0; perf.wf = 0;
-  if (avg < 0.028) return;
-  if (!perf.tried) { perf.tried = true; perf.gpuAvg = avg; setSoft(true); return; }
-  if (soft && avg > perf.gpuAvg * 0.9) { setSoft(false); perf.gpuAvg = 0; }
-  if (quality < QUALITY.length - 1) { quality++; sizedW = -1; }
+  reset();
+  const t = perf.trial;
+  if (t) {
+    perf.trial = null;
+    if (avg > t.avg * 0.85) {                                       // 거의 그대로: 되돌리고 멈춘다
+      if (t.kind === 'soft') setSoft(false); else setQuality(t.q);
+      perf.done = true; perf.skip = 3;
+      return;
+    }
+  }
+  if (avg < SLOW_FRAME) return;
+  perf.skip = 3;
+  if (quality < QUALITY.length - 1) { perf.trial = { kind: 'q', q: quality, avg }; setQuality(quality + 1); return; }
+  if (!soft) { perf.trial = { kind: 'soft', avg }; setSoft(true); return; }
+  perf.done = true;
 }
 let last = performance.now(), lastFrameAt = 0, frames = 0, useTimer = false, frameErr = '', gen = 0;
 let dbgFreeze = false; // ?debug에서 화면을 멈춰 놓고 볼 때만 쓴다.
@@ -2308,7 +2327,8 @@ function loop() {
 function frame(g) {
   if (g !== gen) return; // 루프 방식을 바꾼 뒤 늦게 도착한 이전 예약
   const now = performance.now();
-  const real = clamp((now - last) / 1000, 0, 0.05); last = now; lastFrameAt = now;
+  const rawDt = (now - last) / 1000;
+  const real = clamp(rawDt, 0, 0.05); last = now; lastFrameAt = now;
   try {
     const [vw, vh] = viewSize();
     if (vw !== sizedW || vh !== sizedH) resize();
@@ -2320,7 +2340,7 @@ function frame(g) {
       render();
       const t2 = performance.now();
       updateHud();
-      tuneQuality(now - t0, real);
+      tuneQuality(rawDt);
       perf.u = perf.u * 0.9 + (t1 - t0) * 0.1; perf.r = perf.r * 0.9 + (t2 - t1) * 0.1; perf.h = perf.h * 0.9 + (performance.now() - t2) * 0.1;
       frames++;
     }
