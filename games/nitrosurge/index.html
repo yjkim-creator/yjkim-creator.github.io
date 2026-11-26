@@ -153,6 +153,33 @@ button{font:inherit;color:inherit;cursor:pointer}
 #shopList .buy[disabled]{opacity:.4}
 #shopList .pv.ic{display:flex;align-items:center;justify-content:center;font-size:26px;background:#0b0420}
 .lvbar{display:flex;gap:3px;margin-top:5px}
+#missionBtn{font-size:15px;padding:11px 18px}
+#title{gap:12px}
+#title .row .btn.ghost,#missionBtn{font-size:16px;padding:11px 18px}
+@media (max-height:760px){#title.vet .howto{display:none}}
+.boost{display:flex;align-items:center;gap:8px;font:800 13px/1.2 system-ui,sans-serif;border:1px solid rgba(255,224,102,.5);border-radius:12px;padding:8px 12px;background:rgba(255,224,102,.08);color:#ffe9a8}
+.boost[hidden]{display:none}
+.boost input{width:20px;height:20px;accent-color:#ffb000}
+.boost.no{opacity:.45}
+.attT{font:800 13px/1.3 system-ui,sans-serif;color:#b9ffcf;background:rgba(60,255,140,.1);border:1px solid rgba(60,255,140,.35);border-radius:12px;padding:7px 12px}
+#missionDone{display:flex;flex-direction:column;gap:4px}
+#missionDone div{font:800 13px/1.3 system-ui,sans-serif;color:#b9ffcf}
+#missions{justify-content:flex-start;gap:12px;padding-top:max(18px,env(safe-area-inset-top));background:rgba(5,1,13,.95)}
+#mList{list-style:none;margin:0;padding:0;width:min(420px,100%);display:flex;flex-direction:column;gap:8px}
+#mList li{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:10px 12px;text-align:left}
+#mList li.ok{border-color:#3cff8c;box-shadow:0 0 12px rgba(60,255,140,.3)}
+#mList .tx{flex:1;min-width:0}
+#mList .tx b{display:block;font:800 15px/1.25 system-ui,sans-serif}
+#mList .bar{height:6px;border-radius:3px;background:rgba(255,255,255,.15);margin-top:6px;overflow:hidden}
+#mList .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),#ff2bd6)}
+#mList em{font:900 14px/1.2 system-ui,sans-serif;font-style:normal;text-align:right;min-width:64px}
+#mList em small{display:block;font-size:12px;color:var(--yellow)}
+.mSub{font-size:13px;opacity:.75;width:min(420px,100%);text-align:left}
+.attRow{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;width:min(420px,100%)}
+.attRow span{border:1px dashed rgba(255,255,255,.3);border-radius:10px;padding:7px 0;font:800 13px/1.2 system-ui,sans-serif}
+.attRow span small{display:block;font-size:10px;color:var(--yellow)}
+.attRow span.on{border:1px solid var(--yellow);background:rgba(255,224,102,.15);box-shadow:0 0 10px rgba(255,176,0,.4)}
+.mH{font:900 italic 18px/1 system-ui,sans-serif;letter-spacing:2px;width:min(420px,100%);text-align:left;margin-top:6px}
 .lvbar i{width:14px;height:5px;border-radius:2px;background:rgba(255,255,255,.18)}
 .lvbar i.f{background:var(--yellow);box-shadow:0 0 6px #ff9a00}
 </style>
@@ -295,7 +322,10 @@ else window.addEventListener("load", () => setTimeout(startOnestore, 800));
   <button id="playBtn" class="btn big">▶ START</button>
   <div class="best">BEST <b id="bestT">0</b></div>
   <div class="coins">🪙 <b id="coinT">0</b></div>
+  <div id="attT" class="attT" hidden></div>
+  <label class="boost"><input type="checkbox" class="boostChk"><span class="boostT"></span></label>
   <div class="row"><button class="btn ghost" data-rank-open>🏆 RANKING</button><button class="btn ghost" id="shopBtn">🛒 SHOP</button></div>
+  <button class="btn ghost" id="missionBtn"></button>
   <div class="howto">
     <span>◀ ▶ 화면 왼쪽 · 오른쪽을 눌러 핸들 조작</span>
     <span>⚡ 니트로 버튼을 누르고 있으면 부스트</span>
@@ -322,8 +352,20 @@ else window.addEventListener("load", () => setTimeout(startOnestore, 800));
     <div><i>최대 콤보</i><b id="stCombo"></b></div>
   </div>
   <div id="coinRow"><div id="earnT">+0 🪙</div><button id="dblBtn" class="btn" hidden>▶ x2</button></div>
+  <div id="missionDone"></div>
+  <label class="boost"><input type="checkbox" class="boostChk"><span class="boostT"></span></label>
   <div class="row"><button id="retryBtn" class="btn big">↻ RETRY</button><button id="menuBtn" class="btn ghost">MENU</button></div>
   <div class="row"><button class="btn ghost" data-rank-open>🏆 RANKING</button><button class="btn ghost" id="shopBtn2">🛒 SHOP</button></div>
+</div>
+
+<div id="missions" class="screen" hidden>
+  <div class="shopHead"><h2 id="mTitle"></h2><div class="coins">🪙 <b id="mCoins">0</b></div></div>
+  <div class="mSub" id="mSub"></div>
+  <ul id="mList"></ul>
+  <div class="mH" id="attH"></div>
+  <div class="attRow" id="attRow"></div>
+  <div class="mSub" id="attNote"></div>
+  <button id="mClose" class="btn ghost">✕ CLOSE</button>
 </div>
 
 <div id="shop" class="screen" hidden>
@@ -1365,11 +1407,103 @@ window.addEventListener('keydown', (e) => {
 window.addEventListener('keyup', (e) => { if (KEYMAP[e.code]) keys[KEYMAP[e.code]] = false; });
 window.addEventListener('blur', () => { keys.l = keys.r = keys.n = false; ptr.clear(); });
 
+// ── 오늘의 미션·출석·출발 부스트 ──
+// 미션 3개는 날짜로 정해져 모두 같다. 채우면 그 자리에서 코인을 준다(받기 단추 없음). 셋 다 하면 보너스.
+// 출석은 하루 한 번 켜면 한 칸. 빠진 날이 있어도 칸은 지워지지 않는다(놓치면 잃는 장치 없음).
+// 출발 부스트는 다음 한 판만 니트로를 가득 채워 출발하는 소모품. 체크는 판이 시작되면 풀린다(자동으로 계속 사지 않음).
+const dayKey = () => { const d = new Date(), p = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; };
+const MISSIONS = { dist: [10, 15, 20], near: [30, 50, 80], combo: [6, 8, 10], runs: [3, 4, 5], coin: [800, 1200, 1600] };
+const M_PAY = 500, M_BONUS = 1000, ATTEND = [300, 300, 500, 500, 800, 800, 2000], BOOST_COST = 800;
+const M_TXT = {
+  ko: { title: '오늘의 미션', btn: (d) => `📋 오늘의 미션 ${d}/3`, sub: (n) => `셋 다 하면 보너스 🪙${n}`, subDone: '오늘 미션 끝! 내일 새 미션이 와요',
+        dist: (n) => `오늘 ${n} km 달리기`, near: (n) => `니어 미스 ${n}번`, combo: (n) => `한 판에 콤보 x${n}`, runs: (n) => `${n}판 달리기`, coin: (n) => `코인 ${n.toLocaleString()}개 벌기`,
+        done: (t, n) => `✓ 미션 완료: ${t} +${n} 🪙`, bonus: (n) => `🎉 오늘 미션 모두 완료! +${n} 🪙`,
+        att: '출석 도장', attGot: (d, n) => `📮 출석 ${d}일째 +${n.toLocaleString()} 🪙`, attNote: '빠진 날이 있어도 도장은 그대로예요. 7칸을 채우면 새 판으로 시작해요',
+        boost: (n) => `다음 판 출발 부스트(니트로 가득) 🪙${n}`, boostLow: (n) => `출발 부스트 🪙${n} · 코인이 모자라요` },
+  en: { title: "Today's missions", btn: (d) => `📋 Missions ${d}/3`, sub: (n) => `Finish all three for a 🪙${n} bonus`, subDone: 'All missions done! New ones arrive tomorrow',
+        dist: (n) => `Drive ${n} km today`, near: (n) => `${n} near misses`, combo: (n) => `Combo x${n} in one run`, runs: (n) => `Play ${n} runs`, coin: (n) => `Earn ${n.toLocaleString()} coins`,
+        done: (t, n) => `✓ Mission done: ${t} +${n} 🪙`, bonus: (n) => `🎉 All missions done! +${n} 🪙`,
+        att: 'Visit stamps', attGot: (d, n) => `📮 Visit day ${d} +${n.toLocaleString()} 🪙`, attNote: 'Missed days never erase stamps. A fresh card starts after 7 stamps',
+        boost: (n) => `Launch boost next run (full nitro) 🪙${n}`, boostLow: (n) => `Launch boost 🪙${n} · not enough coins` },
+  ja: { title: '今日のミッション', btn: (d) => `📋 ミッション ${d}/3`, sub: (n) => `3つ全部でボーナス 🪙${n}`, subDone: '今日のミッション完了! 明日また新しいミッション',
+        dist: (n) => `今日 ${n} km 走る`, near: (n) => `ニアミス ${n}回`, combo: (n) => `1回でコンボ x${n}`, runs: (n) => `${n}回走る`, coin: (n) => `コインを${n.toLocaleString()}枚かせぐ`,
+        done: (t, n) => `✓ ミッション完了: ${t} +${n} 🪙`, bonus: (n) => `🎉 今日のミッション全部完了! +${n} 🪙`,
+        att: '来店スタンプ', attGot: (d, n) => `📮 来店${d}日目 +${n.toLocaleString()} 🪙`, attNote: '来ない日があってもスタンプは消えません。7つたまると新しいカード',
+        boost: (n) => `次の1回 スタートブースト(ニトロ満タン) 🪙${n}`, boostLow: (n) => `スタートブースト 🪙${n}・コイン不足` },
+}[LANG];
+function dailyMissions(key) {
+  let h = 2166136261;
+  for (const ch of 'm:' + key) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); }
+  let a = h >>> 0;
+  const r = () => { a = (a + 0x6D2B79F5) >>> 0; let t = Math.imul(a ^ (a >>> 15), a | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const kinds = Object.keys(MISSIONS), out = [];
+  while (out.length < 3) { const k = kinds.splice(Math.floor(r() * kinds.length), 1)[0]; const o = MISSIONS[k]; out.push({ k, need: o[Math.floor(r() * o.length)] }); }
+  return out;
+}
+function mState() {
+  const key = dayKey();
+  const q = store.mq && store.mq.key === key && Array.isArray(store.mq.p) && Array.isArray(store.mq.got) ? store.mq : { key, p: [0, 0, 0], got: [false, false, false], all: false };
+  store.mq = q;
+  return q;
+}
+// 한 판이 끝날 때 미션을 채운다. 끝난 미션 문구를 돌려준다.
+function trackMissions(run) {
+  const list = dailyMissions(dayKey()), q = mState(), lines = [];
+  let pay = 0;
+  list.forEach((m, i) => {
+    if (q.got[i]) return;
+    const g = run[m.k];
+    q.p[i] = m.k === 'combo' ? Math.max(q.p[i], g) : q.p[i] + g;
+    if (q.p[i] >= m.need) { q.got[i] = true; pay += M_PAY; lines.push(M_TXT.done(M_TXT[m.k](m.need), M_PAY)); }
+  });
+  if (!q.all && q.got.every(Boolean)) { q.all = true; pay += M_BONUS; lines.push(M_TXT.bonus(M_BONUS)); }
+  store.coins += pay;
+  return lines;
+}
+let attendGot = null;
+(() => {
+  const key = dayKey(), a = store.att && typeof store.att === 'object' ? store.att : { last: '', n: 0 };
+  if (/shot=/.test(location.hash) || a.last === key) { store.att = a; return; }
+  const day = (Math.max(0, a.n | 0) % ATTEND.length) + 1;
+  store.att = { last: key, n: (a.n | 0) + 1 };
+  store.coins += ATTEND[day - 1];
+  attendGot = { day, pay: ATTEND[day - 1] };
+  save();
+})();
+let boostNext = false;
+function syncBoost() {
+  if (store.coins < BOOST_COST) boostNext = false;
+  document.querySelectorAll('.boostChk').forEach((c) => { c.checked = boostNext; c.disabled = store.coins < BOOST_COST && !boostNext; c.closest('.boost').hidden = c.disabled; }); // 살 수 있을 때만 보인다
+  document.querySelectorAll('.boostT').forEach((t) => { t.textContent = store.coins < BOOST_COST && !boostNext ? M_TXT.boostLow(BOOST_COST) : M_TXT.boost(BOOST_COST); });
+  $('missionBtn').textContent = M_TXT.btn(mState().got.filter(Boolean).length);
+  $('title').classList.toggle('vet', store.best > 0); // 한 판이라도 해 봤으면 작은 화면에서 조작 안내를 접는다
+  const at = $('attT');
+  if (attendGot) { at.hidden = false; at.textContent = M_TXT.attGot(attendGot.day, attendGot.pay); } else at.hidden = true;
+}
+document.querySelectorAll('.boostChk').forEach((c) => c.addEventListener('change', () => { boostNext = c.checked && store.coins >= BOOST_COST; syncBoost(); }));
+function openMissions() {
+  const list = dailyMissions(dayKey()), q = mState();
+  $('mTitle').textContent = M_TXT.title;
+  $('mCoins').textContent = store.coins.toLocaleString();
+  $('mSub').textContent = q.all ? M_TXT.subDone : M_TXT.sub(M_BONUS);
+  $('mList').innerHTML = list.map((m, i) => {
+    const p = Math.min(q.p[i], m.need), shown = m.k === 'dist' ? Math.floor(p * 10) / 10 : Math.floor(p);
+    return `<li class="${q.got[i] ? 'ok' : ''}"><div class="tx"><b>${M_TXT[m.k](m.need)}</b><div class="bar"><i style="width:${(p / m.need) * 100}%"></i></div></div><em>${q.got[i] ? '✓' : `${shown.toLocaleString()}/${m.need.toLocaleString()}`}<small>🪙${M_PAY}</small></em></li>`;
+  }).join('');
+  const n = store.att ? store.att.n | 0 : 0, filled = n === 0 ? 0 : ((n - 1) % 7) + 1;
+  $('attH').textContent = M_TXT.att;
+  $('attRow').innerHTML = ATTEND.map((c, i) => `<span class="${i < filled ? 'on' : ''}">${i + 1}<small>🪙${c.toLocaleString()}</small></span>`).join('');
+  $('attNote').textContent = M_TXT.attNote;
+  show('title', false); show('missions', true);
+}
+
 // ── 화면 전환 ──
 const show = (id, on) => { $(id).hidden = !on; };
 function startGame() {
   Snd.init();
   resetRun();
+  if (boostNext && store.coins >= BOOST_COST) { store.coins -= BOOST_COST; nitro = 1; save(); updateCoins(); }
+  boostNext = false;
   show('title', false); show('over', false); show('pause', false);
   show('hud', true); show('touch', true);
   state = 'countdown'; cdT = 3; lastCd = 0;
@@ -1393,6 +1527,7 @@ function toMenu() {
   show('pause', false); show('over', false); show('shop', false); show('hud', false); show('touch', false); show('title', true);
   updateCoins();
   $('bestT').textContent = store.best.toLocaleString();
+  syncBoost();
   if (Snd.ac) Snd.ac.resume();
   resetRun(); speed = MAXS * 0.7;
 }
@@ -1428,7 +1563,11 @@ function gameOver() {
   show('hud', false); show('touch', false); show('over', true);
   earned = Math.max(0, Math.floor((Math.floor(meters / 25) + nearCount) * (coinMult(store.cb) + perk('coin'))));
   if (/shot=/.test(location.hash)) earned = 0;
-  store.coins += earned; save(); updateCoins();
+  store.coins += earned;
+  const mDone = /shot=/.test(location.hash) ? [] : trackMissions({ dist: meters / 1000, near: nearCount, combo: 1 + maxCombo, runs: 1, coin: earned });
+  save(); updateCoins();
+  $('missionDone').innerHTML = mDone.map((t) => `<div>${t}</div>`).join('');
+  syncBoost();
   dblState = 0;
   $('earnT').textContent = TXT.earn(earned);
   const offer = earned > 0 && rewardReady();
@@ -1514,6 +1653,8 @@ function closeShop() {
 $('shopBtn').onclick = () => openShop('title');
 $('shopBtn2').onclick = () => openShop('over');
 $('shopClose').onclick = closeShop;
+$('missionBtn').onclick = openMissions;
+$('mClose').onclick = () => { show('missions', false); toMenu(); };
 document.querySelectorAll('#shop .tabs button').forEach((b) => b.addEventListener('click', () => { shopTab = b.dataset.tab; renderShop(); }));
 $('shopList').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-act]');
@@ -1536,6 +1677,7 @@ $('shopList').addEventListener('click', (e) => {
   save(); buzz(20); renderShop();
 });
 updateCoins();
+syncBoost();
 $('quitBtn').onclick = toMenu;
 $('resumeBtn').onclick = resumeGame;
 $('pauseBtn').addEventListener('pointerdown', (e) => { e.stopPropagation(); pauseGame(); });
@@ -1560,6 +1702,7 @@ document.addEventListener('visibilitychange', () => {
 window.NS = {
   back() {
     if (!$('shop').hidden) { closeShop(); return true; }
+    if (!$('missions').hidden) { show('missions', false); toMenu(); return true; }
     if (state === 'play' || state === 'countdown') { pauseGame(); return true; }
     if (state === 'paused') { resumeGame(); return true; }
     if (state === 'over') { breakDue = false; toMenu(); return true; }

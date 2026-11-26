@@ -226,7 +226,7 @@
 
   // ---------- 저장 ----------
   function newSave() {
-    return { v: 1, best: 0, totalLayers: 0, runs: 0, stamps: 0, lastStamp: '', daily: { key: '', best: 0, done: false }, bestStreak: 0, stage: freshStage() };
+    return { v: 1, best: 0, totalLayers: 0, runs: 0, stamps: 0, lastStamp: '', daily: { key: '', best: 0, done: false }, bestStreak: 0, stage: freshStage(), quest: sanitizeQuest(null), attend: sanitizeAttend(null) };
   }
   const num = (v, min = 0, max = 1e7) => (Number.isFinite(v) ? Math.max(min, Math.min(max, Math.floor(v))) : min);
   function sanitize(raw) {
@@ -247,6 +247,8 @@
       },
       bestStreak: num(raw.bestStreak, 0, 100000),
       stage: sanitizeStage(raw.stage),
+      quest: sanitizeQuest(raw.quest),
+      attend: sanitizeAttend(raw.attend),
     };
   }
   // 단계 기록: 예전 저장에는 없으므로 비어 있으면 0단계부터.
@@ -694,7 +696,86 @@
     return { save: next, cleared: run.cleared, stars, firstClear, newBest: firstClear, unlocked };
   }
 
+  // ---------- 오늘의 할 일·출석 도장 ----------
+  // 할 일 3개는 날짜로 정해져 모두 같다. 채우면 바로 별(purse)을 준다(받기 단추 없음). 셋 다 채우면 보너스.
+  // 출석 도장은 하루 한 번 앱을 켜면 한 칸. 빠진 날이 있어도 칸이 지워지지 않는다(놓치면 잃는 장치는 두지 않는다).
+  const QUESTS = {
+    perf: [15, 20, 25], // 오늘 딱 맞음 합계
+    tiers: [30, 40, 50], // 오늘 직접 쌓은 층 합계(미리 쌓기 제외)
+    stage: [1, 2, 3], // 오늘 단계 통과 횟수
+    chain: [5, 6, 8], // 한 판에서 딱 맞음 연속
+    order: [1], // 오늘의 주문 완성
+    runs: [3, 4, 5], // 오늘 끝낸 판 수
+  };
+  const QUEST_PAY = 3;
+  const QUEST_BONUS = 5;
+  const ATTEND = [2, 2, 3, 3, 4, 4, 8];
+  function dailyQuests(key) {
+    const r = rng(hash(`quest:${key}`));
+    const kinds = Object.keys(QUESTS);
+    const out = [];
+    while (out.length < 3) {
+      const kind = kinds.splice(Math.floor(r() * kinds.length), 1)[0];
+      const opts = QUESTS[kind];
+      out.push({ kind, need: opts[Math.floor(r() * opts.length)], pay: QUEST_PAY });
+    }
+    return out;
+  }
+  function questState(save, key) {
+    const q = save && save.quest && save.quest.key === key ? save.quest : null;
+    return q ? { key, p: q.p.slice(), got: q.got.slice(), all: q.all } : { key, p: [0, 0, 0], got: [false, false, false], all: false };
+  }
+  function sanitizeQuest(raw) {
+    const q = raw && typeof raw === 'object' ? raw : {};
+    const arr = (a, f) => [0, 1, 2].map((i) => f(Array.isArray(a) ? a[i] : undefined));
+    return {
+      key: typeof q.key === 'string' ? q.key.slice(0, 10) : '',
+      p: arr(q.p, (v) => num(v, 0, 100000)),
+      got: arr(q.got, (v) => v === true),
+      all: q.all === true,
+    };
+  }
+  function sanitizeAttend(raw) {
+    const a = raw && typeof raw === 'object' ? raw : {};
+    return { last: typeof a.last === 'string' ? a.last.slice(0, 10) : '', n: num(a.n, 0, 100000) };
+  }
+  // 한 판이 끝날 때(무한·단계 모두) 할 일을 채운다. 새로 끝난 할 일과 받은 별을 돌려준다.
+  function trackQuests(save, run, key) {
+    const s = sanitize(save);
+    const list = dailyQuests(key);
+    const q = questState(s, key);
+    const stage = run.mode === 'stage';
+    const gain = {
+      perf: run.perfects || 0,
+      tiers: stage ? height(run) : own(run),
+      stage: stage && run.cleared ? 1 : 0,
+      chain: run.bestStreak || 0,
+      order: !stage && run.delivered && run.order === key ? 1 : 0,
+      runs: 1,
+    };
+    const done = [];
+    let pay = 0;
+    list.forEach((t, i) => {
+      if (q.got[i]) return;
+      q.p[i] = t.kind === 'chain' || t.kind === 'order' ? Math.max(q.p[i], gain[t.kind]) : q.p[i] + gain[t.kind];
+      if (q.p[i] >= t.need) { q.got[i] = true; pay += t.pay; done.push(t); }
+    });
+    let bonus = 0;
+    if (!q.all && q.got.every(Boolean)) { q.all = true; bonus = QUEST_BONUS; }
+    const next = { ...s, quest: q, stage: { ...s.stage, purse: num(s.stage.purse + pay + bonus) } };
+    return { save: next, done, pay, bonus };
+  }
+  // 앱을 켠 날 출석 한 칸. 오늘 이미 찍었으면 null.
+  function attend(save, key) {
+    const s = sanitize(save);
+    if (s.attend.last === key) return null;
+    const day = (s.attend.n % ATTEND.length) + 1;
+    const pay = ATTEND[day - 1];
+    return { save: { ...s, attend: { last: key, n: s.attend.n + 1 }, stage: { ...s.stage, purse: num(s.stage.purse + pay) } }, day, pay };
+  }
+
   const logic = {
+    QUESTS, QUEST_PAY, QUEST_BONUS, ATTEND, dailyQuests, questState, trackQuests, attend,
     FALL_T, STAGE_CAP, STAGE_MAIN, CHAPTERS, chapterOf, stageSpec, stageOffset, stageWind, stageSlide, stageVisible, stageAmp, newStageRun, landingAt, hoverAt, plateShift,
     perfectWindows, nextPerfectTime, stageStars, totalStageStars, stageRankScore, stageUnlocked, recordStage, sanitizeStage,
     REVIVE_COST, REVIVE_MAX, UPGRADES, upCost, slackOf, tune, playSpec, stagePay, grantPurse, buy, takeRevive, continueRun, equipRun,

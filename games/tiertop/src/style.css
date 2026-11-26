@@ -145,3 +145,17 @@ li:not(.on) .mini { opacity: .55; }
 .ad .paper { width: min(100%, 340px); }
 .ad .bar { height: 12px; border-radius: 6px; background: #f3e4da; overflow: hidden; margin: 12px 0 4px; }
 .ad .bar i { display: block; height: 100%; width: 0; background: var(--pink-deep); }
+
+/* 오늘의 할 일·출석 도장 */
+.unlock.quest { background: #e8f6df; }
+.quests li.ok { background: #e8f6df; }
+.quests li em { font-style: normal; font-weight: 900; font-size: 14px; display: grid; justify-items: end; min-width: 52px; }
+.quests li em small { font-size: 11px; color: var(--cocoa-soft); }
+.qbar { display: block; height: 6px; border-radius: 3px; background: #ead9cc; overflow: hidden; margin-top: 4px; }
+.qbar i { display: block; height: 100%; background: #f2a54a; border-radius: 3px; }
+.att-h { margin: 14px 0 6px; font-size: 15px; }
+.att { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.att span { display: grid; justify-items: center; padding: 6px 0; border-radius: 10px; background: #f8efe8; border: 2px dashed #e0cbbb; }
+.att span b { font-size: 13px; }
+.att span small { font-size: 10px; color: var(--cocoa-soft); font-weight: 800; }
+.att span.on { background: #ffe3a8; border: 2px solid #e8963a; }

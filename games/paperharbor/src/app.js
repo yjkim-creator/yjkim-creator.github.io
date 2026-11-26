@@ -13,6 +13,9 @@
     close: '닫기', sound: '소리', bookTitle: '항해 도장첩', stars: '모은 별', sailed: '띄운 배', reached: '도착한 포구', stampDays: '도장 찍은 날',
     tipFirst: '배를 톡 누르면 뱃머리 쪽으로 나가요', bump: '쿵!', sailOff: '출항', week: ['일', '월', '화', '수', '목', '금', '토'],
     monthTitle: (y, m) => `${y}년 ${m}월`, demo: '시연', winStat: (n, b) => `종이배 ${n}척 출항 · 부딪힘 ${b}번`,
+    deco: '🎨 포구 꾸미기', decoTitle: '포구 꾸미기', wallet: (n) => `쓸 수 있는 별 ★${n}`, decoNote: '모은 별(기록·랭킹)은 줄지 않아요. 겉모습만 바뀌어요',
+    kinds: { sail: '돛 색', sea: '바다', paper: '종이' }, use: '쓰기', inUse: '쓰는 중', earnMore: (n) => `★${n}`, gotStar: (n) => `★${n} 모았어요 · 🎨 꾸미기에 쓸 수 있어요`,
+    looks: { basic: '기본', spring: '봄꽃', ocean: '파도', sunset: '노을', night: '밤하늘', rainbow: '무지개', noon: '한낮 바다', dusk: '노을 바다', moon: '달밤 바다', news: '신문지', sky: '하늘색 종이', gold: '금박 종이' },
   } : {
     voyage: 'Voyage', today: 'Today', book: 'Stamps', hint: 'Beacon', retry: 'Retry',
     voyageTitle: (n) => `Harbor ${n}`, dailyTitle: (i) => `Today's harbor ${i + 1}/3`,
@@ -23,9 +26,34 @@
     close: 'Close', sound: 'Sound', bookTitle: 'Voyage stamp book', stars: 'Stars', sailed: 'Boats sailed', reached: 'Harbors reached', stampDays: 'Stamped days',
     tipFirst: 'Tap a boat and it sails toward its bow', bump: 'Bonk!', sailOff: 'Away', week: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
     monthTitle: (y, m) => `${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m - 1]} ${y}`, demo: 'Demo', winStat: (n, b) => `${n} boats sailed · ${b} bump${b === 1 ? '' : 's'}`,
+    deco: '🎨 Decorate', decoTitle: 'Decorate the harbor', wallet: (n) => `Stars to spend ★${n}`, decoNote: 'Your collected stars (records, leaderboard) never go down. Only the look changes',
+    kinds: { sail: 'Sails', sea: 'Sea', paper: 'Paper' }, use: 'Use', inUse: 'In use', earnMore: (n) => `★${n}`, gotStar: (n) => `★${n} collected · spend them in 🎨 Decorate`,
+    looks: { basic: 'Classic', spring: 'Blossom', ocean: 'Waves', sunset: 'Sunset', night: 'Night sky', rainbow: 'Rainbow', noon: 'Noon sea', dusk: 'Dusk sea', moon: 'Moonlit sea', news: 'Newspaper', sky: 'Sky paper', gold: 'Gold leaf' },
   };
 
-  const SAILS = ['#E8735A', '#F2B544', '#5BA88F', '#6C8FD6', '#C46FA8', '#E39B5B'];
+  // 꾸미기 겉모습. id 는 logic.js LOOKS 와 같다.
+  const SAIL_SETS = {
+    basic: ['#E8735A', '#F2B544', '#5BA88F', '#6C8FD6', '#C46FA8', '#E39B5B'],
+    spring: ['#F4A6C1', '#FBD3E0', '#F7C873', '#B8E0A8', '#E59BB9', '#FFE4A8'],
+    ocean: ['#2F7FB8', '#5FB4D9', '#9ED8E6', '#3A9C9F', '#7BC4C4', '#1D5F8A'],
+    sunset: ['#F26B3A', '#F59E42', '#E84A5F', '#FFB86B', '#C9455B', '#FF8C5A'],
+    night: ['#2B3A67', '#F2C94C', '#4B4E8C', '#E9D27A', '#1F2A4D', '#D7B54A'],
+    rainbow: ['#E8475A', '#F59B2E', '#F2D43C', '#4CB866', '#3E8FD8', '#8E5BD1'],
+  };
+  const SEA_SETS = {
+    basic: ['#2B7F96', '#155468', 'rgba(160,220,222,0.16)'],
+    noon: ['#36B3C9', '#1C7C94', 'rgba(200,245,240,0.22)'],
+    dusk: ['#8C5A8E', '#3E3266', 'rgba(255,190,160,0.16)'],
+    moon: ['#1E3258', '#0C1630', 'rgba(220,230,255,0.12)'],
+  };
+  const PAPER_SETS = {
+    basic: ['#FBF4E4', '#E9DCC0', '#B49C76'],
+    news: ['#EFEFEA', '#D3D3CC', '#8D8D86'],
+    sky: ['#E8F4FF', '#C6DEF5', '#7FA3C6'],
+    gold: ['#FFF0B8', '#E9C766', '#B08A2E'],
+  };
+  const look = (kind) => (demo || SHOT ? 'basic' : (state.eq && state.eq[kind]) || 'basic');
+  let SAILS = SAIL_SETS.basic;
   const shotMatch = /#shot=(\d+)/.exec(location.hash);
   const SHOT = shotMatch ? Number(shotMatch[1]) : 0;
   let demo = false;
@@ -218,17 +246,18 @@
       ctx.shadowBlur = 18 + Math.sin(now / 120) * 6;
     }
     // 종이 선체: 위·아래 접힌 두 면
+    const pap = PAPER_SETS[look('paper')] || PAPER_SETS.basic;
     hull(L, W, p, 0, 0);
-    ctx.fillStyle = '#FBF4E4';
+    ctx.fillStyle = pap[0];
     ctx.fill();
     ctx.shadowBlur = 0;
     ctx.save();
     hull(L, W, p, 0, 0);
     ctx.clip();
-    ctx.fillStyle = '#E9DCC0';
+    ctx.fillStyle = pap[1];
     ctx.fillRect(-L / 2, 0, L, W);
     ctx.restore();
-    ctx.strokeStyle = '#B49C76';
+    ctx.strokeStyle = pap[2];
     ctx.lineWidth = 1.4;
     hull(L, W, p, 0, 0);
     ctx.stroke();
@@ -237,6 +266,7 @@
     ctx.lineTo(L / 2 - p - 4, 0);
     ctx.stroke();
     // 돛: 칸마다 하나
+    SAILS = SAIL_SETS[look('sail')] || SAIL_SETS.basic;
     const sail = SAILS[b.hue % SAILS.length];
     for (let i = 0; i < b.len; i += 1) {
       const sx = L / 2 - cell * (i + 0.5) - (i === 0 ? cell * 0.06 : 0);
@@ -316,8 +346,9 @@
 
   function drawWater(now) {
     const g = ctx.createLinearGradient(0, 0, 0, ch);
-    g.addColorStop(0, '#2B7F96');
-    g.addColorStop(1, '#155468');
+    const sea = SEA_SETS[look('sea')] || SEA_SETS.basic;
+    g.addColorStop(0, sea[0]);
+    g.addColorStop(1, sea[1]);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, cw, ch);
     // 먼바다 물결 줄
@@ -335,7 +366,7 @@
     const bw = cell * puzzle.w;
     const bh = cell * puzzle.h;
     // 포구 안쪽 잔잔한 물
-    ctx.fillStyle = 'rgba(160,220,222,0.16)';
+    ctx.fillStyle = sea[2];
     roundRect(ox - 6, oy - 6, bw + 12, bh + 12, 14);
     ctx.fill();
     // 밧줄 테두리(점선)
@@ -539,11 +570,14 @@
         <p class="winstat">${T.winStat(puzzle.boats.length, run.bumps)}</p>
         ${stars < 3 ? `<p class="to-three">${T.toThree(Logic.bumpsToThree(run.bumps))}</p>` : ''}
         ${allDaily ? `<p class="stamp-note"><span class="stamp">✓</span>${T.allDaily}</p>` : ''}
+        ${!demo && !SHOT ? `<p class="deco-hint">${T.gotStar(Logic.wallet(state))}</p>` : ''}
         <button class="primary" data-act="${ref.mode === 'daily' ? (allDaily ? 'book' : 'nextdaily') : 'next'}">${ref.mode === 'daily' ? (allDaily ? T.book : T.nextDaily) : T.next}</button>${stars < 3 ? `<button class="retry-three" data-act="retry">${T.tryThree}</button>` : ''}</div>`;
     } else if (overlay === 'lose') {
       veil.innerHTML = `<div class="card lose"><div class="lanterns big">${[0, 1, 2].map(() => lanternSvg(false)).join('')}</div><h2>${T.loseTitle}</h2>${run.removed.length ? `<p class="lose-progress">${T.loseProgress(run.removed.length, puzzle.boats.length)}</p>` : ''}<p>${T.loseBody}</p><button class="primary" data-act="retry">${T.again}</button></div>`;
     } else if (overlay === 'book') {
       veil.innerHTML = bookHtml();
+    } else if (overlay === 'deco') {
+      veil.innerHTML = decoHtml();
     }
     refreshHud();
   }
@@ -568,8 +602,30 @@
       <div class="statgrid"><div><b>${Logic.totalStars(state)}</b><span>${T.stars}</span></div><div><b>${state.sailed}</b><span>${T.sailed}</span></div><div><b>${state.level}</b><span>${T.reached}</span></div><div><b>${Logic.stampDays(state)}</b><span>${T.stampDays}</span></div></div>
       <h3>${T.monthTitle(y, m + 1)}</h3>
       <div class="cal">${T.week.map((w) => `<em>${w}</em>`).join('')}${cells}</div>
+      <button class="primary deco-btn" data-act="deco" style="margin-bottom:8px">${T.deco} · ★${Logic.wallet(state)}</button>
       <button class="primary" data-rank-open style="margin-bottom:8px">${/^en/i.test(navigator.language || '') ? '🏆 Leaderboard' : '🏆 전국 랭킹'}</button>
       <button class="primary" data-act="close">${T.close}</button></div>`;
+  }
+
+  // 꾸미기 창: 종류마다 견본과 단추. 산 것은 '쓰기', 쓰는 중이면 표시만.
+  function swatch(kind, id) {
+    if (kind === 'sail') return `<span class="sw">${SAIL_SETS[id].slice(0, 4).map((c) => `<i style="background:${c}"></i>`).join('')}</span>`;
+    if (kind === 'sea') return `<span class="sw sea" style="background:linear-gradient(${SEA_SETS[id][0]},${SEA_SETS[id][1]})"></span>`;
+    return `<span class="sw paper" style="background:linear-gradient(${PAPER_SETS[id][0]} 50%,${PAPER_SETS[id][1]} 50%);border-color:${PAPER_SETS[id][2]}"></span>`;
+  }
+  function decoHtml() {
+    const w = Logic.wallet(state);
+    const rows = Object.keys(Logic.LOOKS).map((kind) => `<h3>${T.kinds[kind]}</h3><ul class="deco">${Logic.LOOKS[kind].map((it) => {
+      const owned = it.id === 'basic' || state.own.includes(it.id);
+      const on = (state.eq[kind] || 'basic') === it.id;
+      const btn = on ? `<button disabled class="on">${T.inUse}</button>`
+        : owned ? `<button data-look="${kind}:${it.id}">${T.use}</button>`
+          : `<button data-look="${kind}:${it.id}" ${w < it.cost ? 'disabled' : ''}>★${it.cost}</button>`;
+      return `<li class="${on ? 'on' : ''}">${swatch(kind, it.id)}<b>${T.looks[it.id]}</b>${btn}</li>`;
+    }).join('')}</ul>`).join('');
+    return `<div class="card book decocard"><h2>${T.decoTitle}</h2><p class="wallet">${T.wallet(w)}</p>${rows}
+      <p class="deco-note">${T.decoNote}</p>
+      <button class="primary" data-act="book">${T.close}</button></div>`;
   }
 
   function act(name) {
@@ -583,6 +639,7 @@
     else if (name === 'nextdaily') { if (window.onestoreAd) window.onestoreAd.atBreak(); Sfx.play('select'); openDaily(); }
     else if (name === 'book') { Sfx.play('select'); overlay = 'book'; renderOverlay(); }
     else if (name === 'close') { Sfx.play('back'); overlay = null; renderOverlay(); }
+    else if (name === 'deco') { Sfx.play('select'); overlay = 'deco'; renderOverlay(); }
     else if (name === 'hint') {
       if (overlay) return;
       const free = Logic.freeBoats(puzzle, run.removed).filter((id) => !anims.some((a) => a.id === id));
@@ -596,6 +653,14 @@
   }
 
   document.addEventListener('click', (e) => {
+    const lk = e.target.closest('[data-look]');
+    if (lk && !demo) {
+      const [kind, id] = lk.dataset.look.split(':');
+      const had = id === 'basic' || state.own.includes(id);
+      const next = had ? Logic.equipLook(state, kind, id) : Logic.buyLook(state, kind, id);
+      if (next) { state = next; save(); Sfx.play(had ? 'select' : 'horn'); renderOverlay(); }
+      return;
+    }
     const el = e.target.closest('[data-act],[data-day]');
     if (el && el.dataset.day !== undefined) {
       startMusic();
@@ -631,6 +696,7 @@
   document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
   window.appBack = () => {
     if (demo) return true;
+    if (overlay === 'deco') { overlay = 'book'; renderOverlay(); return true; }
     if (overlay === 'book') { overlay = null; renderOverlay(); return true; }
     if (ref && ref.mode === 'daily') { openVoyage(); return true; }
     return false;

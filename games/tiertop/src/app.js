@@ -24,6 +24,10 @@
     cushion: '여유 판정', cushionDesc: '딱 맞음이 한 단계씩 너그러워져요', reviveName: '1회 살리기', reviveDesc: '기울어진 직후, 한 판에 한 번 이어 쌓아요',
     pre: '미리 쌓기', preDesc: '무한 쌓기를 1층씩 더 쌓인 채로 시작해요. 끝없이 올릴 수 있어요(단계 도전 제외). 기록·랭킹은 직접 쌓은 층만 세요',
     preNote: (n) => `미리 쌓은 ${n}층은 기록에서 빼요`,
+    quests: '오늘의 할 일', questsBtn: (d, n) => `📋 오늘의 할 일 ${d}/${n}`, questAll: (n) => `셋 다 하면 보너스 별 ${n}`, questAllDone: '오늘 할 일을 모두 끝냈어요. 내일 새 할 일이 와요',
+    questDone: (t, n) => `할 일 완료: ${t} · 별 +${n}`, questBonus: (n) => `오늘 할 일 모두 완료! 보너스 별 +${n}`,
+    q: { perf: (n) => `딱 맞음 ${n}번`, tiers: (n) => `직접 ${n}층 쌓기`, stage: (n) => `단계 ${n}번 통과`, chain: (n) => `한 판에 딱 맞음 ${n}연속`, order: () => '오늘의 주문 완성', runs: (n) => `${n}판 굽기` },
+    attend: '출석 도장', attendGot: (d, n) => `출석 ${d}일째 도장 · 별 +${n}`, attendNote: '빠진 날이 있어도 도장은 그대로예요. 7칸을 채우면 새 판으로 시작해요',
     devices: {
       basic: ['흔들 짤주머니', '짤주머니가 앞뒤로 흔들려요. 가운데를 지날 때 톡!'],
       wind: ['산들바람', '바람이 떨어지는 층을 밀어요. 동그란 고리가 층이 닿을 자리예요. 고리가 가운데 점에 올 때 톡!'],
@@ -58,6 +62,10 @@
     cushion: 'Kinder perfects', cushionDesc: 'Perfect drops get a little more forgiving', reviveName: 'One revive', reviveDesc: 'Once a run, keep stacking right after a tip',
     pre: 'Head start', preDesc: 'Endless stacking starts 1 more tier high per level, with no level cap (not in stages). Records and the leaderboard count only tiers you stack',
     preNote: (n) => `${n} head-start tier${n === 1 ? '' : 's'} not counted`,
+    quests: "Today's tasks", questsBtn: (d, n) => `📋 Today's tasks ${d}/${n}`, questAll: (n) => `Finish all three for ${n} bonus stars`, questAllDone: "All of today's tasks are done. New ones arrive tomorrow",
+    questDone: (t, n) => `Task done: ${t} · +${n} stars`, questBonus: (n) => `All tasks done! +${n} bonus stars`,
+    q: { perf: (n) => `${n} perfect drops`, tiers: (n) => `Stack ${n} tiers yourself`, stage: (n) => `Clear ${n} stage${n === 1 ? '' : 's'}`, chain: (n) => `${n} perfects in a row`, order: () => "Complete today's order", runs: (n) => `Bake ${n} cakes` },
+    attend: 'Visit stamps', attendGot: (d, n) => `Visit stamp, day ${d} · +${n} stars`, attendNote: 'Missed days never erase stamps. A fresh card starts after 7 stamps',
     devices: {
       basic: ['Swinging bag', 'The piping bag swings back and forth. Tap as it passes the middle!'],
       wind: ['Breeze', 'Wind pushes the falling tier. The ring shows where it will land. Tap when the ring meets the center dot!'],
@@ -82,6 +90,9 @@
   try { save = Logic.parseSave(localStorage.getItem(SAVE_KEY)); } catch { /* 저장이 막혀도 돈다 */ }
   const today = Logic.dayKey();
   const order = Logic.dailyOrder(today);
+  // 오늘 처음 켰으면 출석 도장 한 칸(별은 바로 지갑에). 제목 화면에 한 줄로 알린다.
+  let attendInfo = null;
+  { const a = Logic.attend(save, today); if (a) { save = a.save; attendInfo = a; try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch { /* 저장이 막혀도 돈다 */ } } }
   let run = null;
   try { run = Logic.sanitizeRun(JSON.parse(localStorage.getItem(RUN_KEY)), order); } catch { run = null; }
   let demo = false;
@@ -334,8 +345,9 @@
     if (!run) return;
     const finished = run;
     const result = Logic.recordRun(save, finished, today);
-    save = result.save;
-    endInfo = { run: finished, ...result, pending: false, committed: true };
+    const quest = Logic.trackQuests(result.save, finished, today);
+    save = quest.save;
+    endInfo = { run: finished, ...result, save, quest, pending: false, committed: true };
     run = null;
     writeSave();
     mode = 'end';
@@ -355,7 +367,9 @@
     if (!srun || (endInfo && endInfo.committed)) return;
     const finished = srun;
     const result = Logic.recordStage(save, finished);
-    save = result.save;
+    const quest = Logic.trackQuests(result.save, finished, today);
+    save = quest.save;
+    result.quest = quest;
     const pay = Logic.stagePay(finished);
     if (pay) save = Logic.grantPurse(save, pay);
     endInfo = { run: finished, stage: true, ...result, pay, bonus: false, committed: true, pending: false };
@@ -386,6 +400,41 @@
       return `<span class="sw" style="--c:${f.color};--k:${f.cream}"><i></i>${fname(f)}</span>`;
     }).join('');
   }
+  // 결과 화면: 이번 판으로 끝난 할 일과 받은 별
+  function questLines(info) {
+    const q = info && info.quest;
+    if (!q) return '';
+    const lines = q.done.map((t) => `<p class="unlock quest">✓ ${T.questDone(T.q[t.kind](t.need), t.pay)}</p>`);
+    if (q.bonus) lines.push(`<p class="unlock quest">🎉 ${T.questBonus(q.bonus)}</p>`);
+    return lines.join('');
+  }
+  const questCount = () => Logic.questState(save, today).got.filter(Boolean).length;
+  function openQuests() {
+    shopOpen = false;
+    Sfx.play('select');
+    const list = Logic.dailyQuests(today);
+    const q = Logic.questState(save, today);
+    const rows = list.map((t, i) => {
+      const p = Math.min(q.p[i], t.need);
+      return `<li class="${q.got[i] ? 'ok' : ''}"><div><b>${T.q[t.kind](t.need)}</b><span class="qbar"><i style="width:${(p / t.need) * 100}%"></i></span></div><em>${q.got[i] ? '✓' : `${p}/${t.need}`}<small>★${t.pay}</small></em></li>`;
+    }).join('');
+    const n = save.attend.n;
+    const filled = n === 0 ? 0 : ((n - 1) % Logic.ATTEND.length) + 1;
+    const cells = Logic.ATTEND.map((pay, i) => `<span class="${i < filled ? 'on' : ''}"><b>${i + 1}</b><small>★${pay}</small></span>`).join('');
+    book.innerHTML = `
+      <div class="paper">
+        <header><h2>${T.quests}</h2><span>${T.holdStars(save.stage.purse)}</span></header>
+        <p class="next">${q.all ? T.questAllDone : T.questAll(Logic.QUEST_BONUS)}</p>
+        <ul class="shop quests">${rows}</ul>
+        <h3 class="att-h">${T.attend}</h3>
+        <div class="att">${cells}</div>
+        <p class="next">${T.attendNote}</p>
+        <button class="go" id="questClose">${T.close}</button>
+      </div>`;
+    book.classList.add('open');
+    $('#questClose').addEventListener('click', (e) => { e.stopPropagation(); closeBook(); });
+  }
+
   // 결과 영수증 한 줄: 별 하나 더 받는 방법, 아니면 최고 기록까지 남은 층.
   function goalLine(info, h) {
     const ns = Logic.perfectsToNextStar(info.run);
@@ -415,14 +464,17 @@
         <div class="sws">${swatches(order.flavors)}</div>
         <dl><div><dt>${T.today}</dt><dd>${daily.best}</dd></div><div><dt>${T.best}</dt><dd>${save.best}</dd></div><div><dt>${T.stamps}</dt><dd>${save.stamps}</dd></div></dl>
         <p class="next">${T.holdStars(save.stage.purse)} · ${nextLine()}</p>
+        ${attendInfo ? `<p class="unlock quest">📮 ${T.attendGot(((attendInfo.day - 1) % 7) + 1, attendInfo.pay)}</p>` : ''}
       </div>
       <button class="go" id="goBtn">${run ? T.resume : T.start}</button>
       <button class="go alt" id="stageBtn">${T.stageBtn(nextStage())}</button>
       <div class="row three"><button class="ghost" id="pickBtn">${T.stagePick}</button>
       <button class="ghost" id="shopBtn">${T.shop}</button>
       <button class="ghost" id="titleBook">${T.book}</button></div>
-      <button class="ghost wide" data-rank-open>${/^en/i.test(navigator.language || '') ? '🏆 Leaderboard' : '🏆 전국 랭킹'}</button>`;
+      <div class="row"><button class="ghost" id="questBtn">${T.questsBtn(questCount(), 3)}</button>
+      <button class="ghost" data-rank-open>${/^en/i.test(navigator.language || '') ? '🏆 Leaderboard' : '🏆 전국 랭킹'}</button></div>`;
     sheet.classList.add('open');
+    $('#questBtn').addEventListener('click', (e) => { e.stopPropagation(); openQuests(); });
     $('#stageBtn').addEventListener('click', (e) => { e.stopPropagation(); openStage(nextStage()); });
     $('#pickBtn').addEventListener('click', (e) => { e.stopPropagation(); openPicker(); });
     $('#shopBtn').addEventListener('click', (e) => { e.stopPropagation(); openShop(); });
@@ -445,6 +497,7 @@
         <div class="stars">${[1, 2, 3].map((n) => `<i class="${n <= st ? 'on' : ''}"></i>`).join('')}</div>
         <dl><div><dt>${T.perfect}</dt><dd>${info.run.perfects}</dd></div><div><dt>${T.best}</dt><dd>${info.save.best}</dd></div><div><dt>${T.stamps}</dt><dd>${info.save.stamps}</dd></div></dl>
         ${info.unlocked.map((f) => `<p class="unlock"><span class="sw" style="--c:${f.color};--k:${f.cream}"><i></i></span>${T.unlocked(fname(f))}</p>`).join('')}
+        ${questLines(info)}
         ${pre ? `<p class="next">${T.preNote(pre)}</p>` : ''}
         ${goalLine(info, h)}
         <p class="next">${nextLine()}</p>
@@ -553,6 +606,7 @@
         <dl><div><dt>${T.target}</dt><dd>${T.reached(h, r.target)}</dd></div><div><dt>${T.perfect}</dt><dd>${r.perfects}</dd></div><div><dt>★</dt><dd>${save.stage.purse}</dd></div></dl>
         ${info.committed && info.pay ? `<p class="goal">${info.bonus ? T.gotStars(info.pay * 3) : T.gotStars(info.pay)}</p>` : ''}
         ${info.adFail ? `<p class="goal">${T.adFail}</p>` : ''}
+        ${questLines(info)}
         ${(info.unlocked || []).map((f) => `<p class="unlock"><span class="sw" style="--c:${f.color};--k:${f.cream}"><i></i></span>${T.unlocked(fname(f))}</p>`).join('')}
         ${info.committed && save.stage.best ? rankLine() : ''}
       </div>

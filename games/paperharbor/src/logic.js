@@ -259,8 +259,15 @@
     return { run: { ...run, bumps, lost }, result: lost ? 'lose' : 'bump', dist: status.dist, hit: status.hit };
   }
 
+  const LOOKS = {
+    sail: [{ id: 'basic', cost: 0 }, { id: 'spring', cost: 8 }, { id: 'ocean', cost: 15 }, { id: 'sunset', cost: 25 }, { id: 'night', cost: 40 }, { id: 'rainbow', cost: 60 }],
+    sea: [{ id: 'basic', cost: 0 }, { id: 'noon', cost: 12 }, { id: 'dusk', cost: 30 }, { id: 'moon', cost: 50 }],
+    paper: [{ id: 'basic', cost: 0 }, { id: 'news', cost: 10 }, { id: 'sky', cost: 20 }, { id: 'gold', cost: 70 }],
+  };
+  const LOOK_IDS = new Set(Object.values(LOOKS).flat().map((x) => x.id).filter((id) => id !== 'basic'));
+
   function newState() {
-    return { v: SAVE_VERSION, level: 1, best: {}, daily: {}, sailed: 0, current: null };
+    return { v: SAVE_VERSION, level: 1, best: {}, daily: {}, sailed: 0, current: null, spent: 0, own: [], eq: { sail: 'basic', sea: 'basic', paper: 'basic' } };
   }
 
   const isInt = (v) => Number.isInteger(v);
@@ -271,6 +278,14 @@
     if (!raw || typeof raw !== 'object') return s;
     if (isInt(raw.level) && raw.level >= 1 && raw.level <= 9999) s.level = raw.level;
     if (isInt(raw.sailed) && raw.sailed >= 0) s.sailed = raw.sailed;
+    if (isInt(raw.spent) && raw.spent >= 0) s.spent = raw.spent;
+    if (Array.isArray(raw.own)) s.own = [...new Set(raw.own.filter((id) => LOOK_IDS.has(id)))];
+    if (raw.eq && typeof raw.eq === 'object') {
+      for (const kind of Object.keys(LOOKS)) {
+        const id = raw.eq[kind];
+        if (id === 'basic' || (s.own.includes(id) && LOOKS[kind].some((x) => x.id === id))) s.eq[kind] = id;
+      }
+    }
     if (raw.best && typeof raw.best === 'object') {
       for (const [k, v] of Object.entries(raw.best)) {
         if (/^\d+$/.test(k) && isInt(v) && v >= 1 && v <= 3) s.best[k] = v;
@@ -319,6 +334,21 @@
     return n;
   }
 
+  // ---------- 포구 꾸미기: 모은 별로 사는 겉모습(돛·바다·종이). 판의 어려움과 기록에는 아무 영향이 없다 ----------
+  // 쓸 수 있는 별 = 모은 별(기록·랭킹 그대로) - 꾸미기에 쓴 별. 모은 별은 줄지 않는다.
+  function wallet(state) {
+    return Math.max(0, totalStars(state) - (state.spent || 0));
+  }
+  function buyLook(state, kind, id) {
+    const item = (LOOKS[kind] || []).find((x) => x.id === id);
+    if (!item || id === 'basic' || state.own.includes(id) || wallet(state) < item.cost) return null;
+    return { ...state, spent: (state.spent || 0) + item.cost, own: [...state.own, id], eq: { ...state.eq, [kind]: id } };
+  }
+  function equipLook(state, kind, id) {
+    if (!LOOKS[kind] || (id !== 'basic' && !state.own.includes(id))) return null;
+    return { ...state, eq: { ...state.eq, [kind]: id } };
+  }
+
   // 도장첩: 오늘의 포구 세 판을 모두 띄운 날 수
   function stampDays(state) {
     return Object.values(state.daily).filter((row) => row.every((v) => v > 0)).length;
@@ -330,6 +360,7 @@
     rng, hashString, cellsOf, occupancy, pathStatus, boatAt, solve, freeBoats,
     generate, levelSpec, levelSeed, dateKey, dailySpec, dailySeed, puzzleFor,
     starsFor, newRun, tap, newState, sanitize, recordWin, totalStars, stampDays,
+    LOOKS, wallet, buyLook, equipLook,
   };
 
   if (typeof module !== 'undefined') module.exports = logic;
