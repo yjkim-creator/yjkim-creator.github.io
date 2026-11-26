@@ -511,12 +511,14 @@
     $('soundBtn').innerHTML = `${SPEAKER}${state.sound ? '<path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>' : '<path d="M16 9.5l5 5M21 9.5l-5 5"/>'}</svg>`;
     $('soundBtn').setAttribute('aria-pressed', String(state.sound));
     const c = cur();
+    // 결과 카드가 떠 있는 동안에는 상태가 이미 다음 홀(층)로 넘어가 있으므로, 방금 끝낸 홀(층)을 보여 준다.
+    const back = pendingOut ? 1 : 0;
     if (state.mode === 'ladder') {
       $('holeLabel').textContent = TEXT.floor;
-      $('holeNum').textContent = String(state.ladder.level);
+      $('holeNum').textContent = String(state.ladder.level - back);
     } else {
       $('holeLabel').textContent = TEXT.hole;
-      $('holeNum').innerHTML = `${Math.min(state.daily.hole + 1, L.HOLES_PER_DAY)}<i>/${L.HOLES_PER_DAY}</i>`;
+      $('holeNum').innerHTML = `${Math.min(state.daily.hole + 1 - back, L.HOLES_PER_DAY)}<i>/${L.HOLES_PER_DAY}</i>`;
     }
     $('parNum').textContent = String(hole.par);
     const strokes = pendingOut ? Math.min(pendingOut.strokes, L.STROKE_CAP) : c.strokes;
@@ -752,6 +754,9 @@
       rest = { x: hole.cup.x, y: hole.cup.y };
       sinking = 1;
       pendingOut = { strokes: 1, par: hole.par, ace: true, pickedUp: false, roundDone: false };
+      // 실제 게임처럼 결과 카드가 뜰 때는 기록이 이미 다음 홀로 넘어가 있다.
+      state.daily.scores = [3, 2, 4, 1];
+      state.daily.hole = 4;
       showHoleOut(pendingOut);
     } else {
       const base = new Date('2026-11-03T12:00:00');
