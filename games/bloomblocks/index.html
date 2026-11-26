@@ -119,13 +119,19 @@ else window.addEventListener("load", () => setTimeout(startOnestore, 800));
       <p id="overlay-detail"></p>
       <button id="overlay-primary" type="button"></button>
       <button id="overlay-secondary" class="ghost" type="button"></button>
-      <button class="ghost" type="button" data-rank-open>🏆 전국 랭킹</button>
+      <button id="rank-btn" class="ghost" type="button" data-rank-open>🏆 전국 랭킹</button>
     </div>
   </section>
 
   <script src="game.js"></script>
   <script src="app.js"></script>
 <script src="leaderboard.js"></script>
-<script>window.Rank && Rank.setup(Object.assign({"game": "bloomblocks", "title": "Bloom Blocks · 최고 점수", "unit": "점", "max": 10000000, "theme": {"panel": "#221e4a", "text": "#f6f3ff", "mute": "#a9a3cf", "accent": "#ffb347", "accentText": "#2b1a00"}}, { read: function () { return Number(localStorage.getItem('bloom.best')); } }));</script>
+<script>
+// 원스토어 글로벌: 게임 언어가 한국어가 아니면 랭킹 버튼·제목·단위도 영어로 보여 준다(app.js 의 언어 판단과 같게).
+var BB_KO = /^ko/i.test(navigator.language || "");
+document.documentElement.lang = BB_KO ? "ko" : "en";
+if (!BB_KO) document.getElementById("rank-btn").textContent = "🏆 Leaderboard";
+</script>
+<script>window.Rank && Rank.setup(Object.assign({"game": "bloomblocks", "title": BB_KO ? "Bloom Blocks · 최고 점수" : "Bloom Blocks · Best score", "unit": BB_KO ? "점" : "pts", "max": 10000000, "theme": {"panel": "#221e4a", "text": "#f6f3ff", "mute": "#a9a3cf", "accent": "#ffb347", "accentText": "#2b1a00"}}, { read: function () { return Number(localStorage.getItem('bloom.best')); } }));</script>
 </body>
 </html>

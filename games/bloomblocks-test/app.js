@@ -455,13 +455,13 @@
     const record = state.score > startBest && state.score > 0;
     if (window.Rank && !/shot=/.test(location.hash)) Rank.submit(state.score);
     soundOver();
-    if (window.onestoreAd) window.onestoreAd.atBreak();
     showOverlay({
       title: record ? TEXT.record : TEXT.over,
       score: String(state.score),
       detail: record ? '' : TEXT.bestScore(best),
       primary: TEXT.again,
-      action: newGame,
+      // 전면 광고는 '다시 하기'를 누를 때만 띄운다(결과가 뜨는 순간에는 띄우지 않음).
+      action: () => { if (window.onestoreAd) window.onestoreAd.atBreak(); newGame(); },
     });
   }
 

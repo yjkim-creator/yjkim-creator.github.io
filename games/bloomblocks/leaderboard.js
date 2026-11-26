@@ -9,7 +9,7 @@
   const CONFIG = { apiKey: 'AIzaSyDIyZn6P40oPDt-Hhn5K-KxErH6AgUApFc', projectId: 'kungkunglab-rank' };
   const READY = !!CONFIG.apiKey;
   const DOCS = `https://firestore.googleapis.com/v1/projects/${CONFIG.projectId}/databases/(default)/documents`;
-  const KO = /^ko/i.test(navigator.language || '') || !/^en/i.test(navigator.language || '');
+  const KO = /^ko/i.test(navigator.language || ''); // 게임(app.js)과 같게: 한국어가 아니면 영어
   const PROFILE = 'kk-rank-profile';
   const T = KO ? {
     rank: '전국 랭킹', week: '이번 주', all: '전체', weekNote: '매주 월요일 0시에 새로 시작해요', me: '내 기록', myRank: (n) => `${n}위`, aboutRank: (n) => `약 ${n}위`, none: '아직 기록이 없어요',
