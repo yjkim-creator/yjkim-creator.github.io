@@ -147,18 +147,6 @@ button{font:inherit;color:inherit;cursor:pointer}
 #shopList .tx{flex:1;min-width:0}
 #shopList .tx b{display:block;font:800 15px/1.25 system-ui,sans-serif}
 #shopList .tx small{display:block;font-size:12px;opacity:.7;margin-top:2px}
-/* 광고 제거(shared/iap/noads.js) */
-.kkna{width:min(420px,100%);flex:none;background:rgba(255,43,214,.1);border:1px solid rgba(255,43,214,.55);border-radius:14px;padding:8px 10px;text-align:left}
-.kkna-row{display:flex;align-items:center;gap:10px}
-.kkna-tx{flex:1;min-width:0}
-.kkna-tx b{display:block;font:800 15px/1.25 system-ui,sans-serif}
-.kkna-tx small{display:block;font-size:12px;opacity:.75;margin-top:2px;line-height:1.35}
-.kkna-buy{flex:none;min-width:84px;min-height:38px;padding:0 12px;border:0;border-radius:10px;background:var(--pink);color:#fff;font:800 14px system-ui,sans-serif}
-.kkna-buy:disabled{background:rgba(255,255,255,.12);color:#fff}
-.kkna-foot{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:6px}
-.kkna-restore{min-height:30px;padding:0 8px;border:0;background:none;color:var(--cyan);font:700 13px system-ui,sans-serif;text-decoration:underline}
-.kkna-tip,.kkna-msg{font-size:12px;opacity:.8}
-.kkna-msg{opacity:1;font-weight:700;color:#ffd6f6}
 #shopList .buy{flex:none;min-width:84px;border:0;border-radius:10px;padding:9px 10px;font:900 13px/1 system-ui,sans-serif;background:linear-gradient(90deg,#ffe066,#ffb000);color:#2a1400}
 #shopList .buy.use{background:linear-gradient(90deg,var(--cyan),#8af7ff);color:#04202a}
 #shopList .buy.on{background:transparent;border:1px solid rgba(255,255,255,.4);color:#fff}
@@ -207,7 +195,7 @@ function startOnestore() {
       if (info && info.err) return; // 원스토어 앱 밖(일반 브라우저)
       if (applyUserLanguage(info)) return; // 언어가 바뀌면 새로고침 후 다시 시작
       sdk.setLoadingProgress(100);
-      return sdk.startGameAsync().then(() => { setupAds(sdk); setupNoAds(sdk); });
+      return sdk.startGameAsync().then(() => setupAds(sdk));
     })
     .catch((e) => console.warn("onestore sdk", e && (e.reason || e.message)));
 }
@@ -245,7 +233,7 @@ function setupAds(sdk) {
       sdk.ads.showInterstitialAsync({ placementId: AD_ID }).then((res) => finish(res, false), () => finish(null, true));
     } catch (e) { finish(null, true); }
   }
-  window.onestoreAd.atBreak = () => { if (!(window.kkNoAds && kkNoAds.owned())) present(false); };
+  window.onestoreAd.atBreak = () => present(false);
   // 코인 2배·별 3배: 원스토어 보상형(리워드 비디오) 광고. 끝까지 봐서 status 가 "rewarded" 일 때만 보상한다.
   // (전면 광고는 뒤로가기로 닫아도 "completed" 라 쓰지 않는다.)
   const REWARD_ID = "xPYGV-W7TR-43W6-QH9T";
@@ -273,33 +261,9 @@ function setupAds(sdk) {
   };
   try { window.onestoreAd.rewardReady = !!sdk.ads.isSupported("rewarded"); } catch (e) { window.onestoreAd.rewardReady = false; }
 }
-// 광고 제거 인앱 상품(원스토어 관리형, 상품 ID noads). 원스토어 앱 안에서만 동작한다.
-// 이미 산 사람이 다시 누르면 원스토어가 already_owned 로 답하므로 그걸 '복원'으로 처리한다.
-const NOADS_ID = "noads";
-function setupNoAds(sdk) {
-  const k = window.kkNoAds;
-  try { if (!k || !sdk.iap || !sdk.iap.isSupported("purchase")) return; } catch (e) { return; }
-  k._provider({
-    buy(done) {
-      sdk.iap.purchase({ productId: NOADS_ID }).then(
-        () => done("ok"),
-        (e) => {
-          const r = e && e.reason;
-          done(r === "already_owned" ? "restored" : r === "user_cancelled" ? "cancel" : "fail");
-        });
-    },
-  });
-  try {
-    if (sdk.iap.isSupported("getProductDetails")) sdk.iap.getProductDetailsAsync([NOADS_ID]).then((list) => {
-      const p = (list || []).find((x) => x.productId === NOADS_ID);
-      if (p && p.price) k._price(p.price, p.priceCurrencyCode);
-    }, () => {});
-  } catch (e) { /* 가격은 몰라도 살 수 있다 */ }
-}
 if (document.readyState === "complete") setTimeout(startOnestore, 800);
 else window.addEventListener("load", () => setTimeout(startOnestore, 800));
   </script>
-  <script src="src/noads.js?v=1" data-game="nitrosurge"></script>
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -366,7 +330,6 @@ else window.addEventListener("load", () => setTimeout(startOnestore, 800));
   <div class="shopHead"><h2>SHOP</h2><div class="coins">🪙 <b id="shopCoins">0</b></div></div>
   <div class="tabs"><button data-tab="up"></button><button data-tab="car"></button><button data-tab="wing"></button></div>
   <ul id="shopList"></ul>
-  <div class="kkna" id="noadsBox" hidden></div>
   <button id="shopClose" class="btn ghost">✕ CLOSE</button>
 </div>
 
@@ -419,11 +382,11 @@ if (!store.wings.includes(store.wing)) store.wing = 'gold';
 const LANG = (() => { const n = navigator.language || ''; return /^ko/i.test(n) ? 'ko' : /^ja/i.test(n) ? 'ja' : 'en'; })();
 const TXT = {
   ko: { up: '강화', car: '자동차', wing: '날개', fly: '비행 시간', flyD: (s) => `노란 날개로 ${s}초 비행`, max: 'MAX', use: '장착', on: '장착됨',
-        earn: (n) => `+${n} 🪙`, dbl: (n) => `▶ 광고 보고 2배 (+${n})`, dblOk: (n) => `+${n} 🪙 x2!`, dblFail: '광고를 불러오지 못했어요', dblFree: (n) => `▶ 2배 받기 (+${n})` },
+        earn: (n) => `+${n} 🪙`, dbl: (n) => `▶ 광고 보고 2배 (+${n})`, dblOk: (n) => `+${n} 🪙 x2!`, dblFail: '광고를 불러오지 못했어요' },
   en: { up: 'Upgrade', car: 'Cars', wing: 'Wings', fly: 'Flight time', flyD: (s) => `Fly for ${s}s with yellow wings`, max: 'MAX', use: 'Equip', on: 'Equipped',
-        earn: (n) => `+${n} 🪙`, dbl: (n) => `▶ Watch ad: x2 (+${n})`, dblOk: (n) => `+${n} 🪙 x2!`, dblFail: 'No ad available right now', dblFree: (n) => `▶ Get x2 (+${n})` },
+        earn: (n) => `+${n} 🪙`, dbl: (n) => `▶ Watch ad: x2 (+${n})`, dblOk: (n) => `+${n} 🪙 x2!`, dblFail: 'No ad available right now' },
   ja: { up: '強化', car: 'クルマ', wing: '翼', fly: '飛行時間', flyD: (s) => `黄色い翼で${s}秒飛行`, max: 'MAX', use: '装備', on: '装備中',
-        earn: (n) => `+${n} 🪙`, dbl: (n) => `▶ 広告を見て2倍 (+${n})`, dblOk: (n) => `+${n} 🪙 x2!`, dblFail: '今は広告を読み込めません', dblFree: (n) => `▶ 2倍もらう (+${n})` },
+        earn: (n) => `+${n} 🪙`, dbl: (n) => `▶ 広告を見て2倍 (+${n})`, dblOk: (n) => `+${n} 🪙 x2!`, dblFail: '今は広告を読み込めません' },
 }[LANG];
 const FLY_COST = [1500, 3000, 5000, 8000, 12000, 18000];   // 비행 강화 1~6단계 값
 const flyTime = (lv) => 4 + 0.5 * lv;
@@ -1435,13 +1398,11 @@ function toMenu() {
 }
 let earned = 0, dblState = 0, breakDue = false;   // dblState 0 가능, 1 보는 중, 2 받음, 3 실패
 function rewardReady() {
-  if (window.kkNoAds && window.kkNoAds.owned()) return true; // 광고 제거: 광고 없이 바로 2배
   if (/[?&]fakead/.test(location.search)) return true;
   if (window.AndroidAds && typeof window.AndroidAds.showRewarded === 'function') return true;
   return !!(window.onestoreAd && window.onestoreAd.rewardReady && typeof window.onestoreAd.showReward === 'function');
 }
 function watchReward(done) {
-  if (window.kkNoAds && window.kkNoAds.owned()) { done(true); return; }
   if (/[?&]fakead/.test(location.search)) { setTimeout(() => done(true), 300); return; }
   if (window.AndroidAds && typeof window.AndroidAds.showRewarded === 'function') {
     window.__tiertopOnReward = (ok) => { window.__tiertopOnReward = null; done(!!ok); };
@@ -1456,7 +1417,7 @@ function watchReward(done) {
 function takeBreak() {
   if (!breakDue) return;
   breakDue = false;
-  try { if (window.onestoreAd && !(window.kkNoAds && window.kkNoAds.owned())) window.onestoreAd.atBreak(); } catch (e) { /* 광고가 없어도 진행 */ }
+  try { if (window.onestoreAd) window.onestoreAd.atBreak(); } catch (e) { /* 광고가 없어도 진행 */ }
 }
 function updateCoins() {
   $('coinT').textContent = store.coins.toLocaleString();
@@ -1472,7 +1433,7 @@ function gameOver() {
   $('earnT').textContent = TXT.earn(earned);
   const offer = earned > 0 && rewardReady();
   $('dblBtn').hidden = !offer; $('dblBtn').disabled = false;
-  $('dblBtn').textContent = (window.kkNoAds && window.kkNoAds.owned()) ? TXT.dblFree(earned) : TXT.dbl(earned);
+  $('dblBtn').textContent = TXT.dbl(earned);
   breakDue = true; // 전면 광고는 '다시하기'를 누를 때만(takeBreak)
   const sc = Math.floor(score);
   if (window.Rank && !/shot=/.test(location.hash)) Rank.submit(sc);
@@ -1545,7 +1506,6 @@ function openShop(from) {
   shopFrom = from;
   show('title', false); show('over', false); show('shop', true);
   renderShop();
-  if (window.kkNoAds) window.kkNoAds.mount($('noadsBox'), { lang: LANG });
 }
 function closeShop() {
   show('shop', false);

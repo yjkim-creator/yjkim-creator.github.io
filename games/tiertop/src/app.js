@@ -19,7 +19,7 @@
     shop: '상점', holdStars: (n) => `별 ${n}`, gotStars: (n) => `별 ${n}개를 받았어요`, moreStars: (n) => `광고 보고 +${n} (3배)`,
     reviveUse: (n) => `1회 살리기 (${n})`, reviveBuy: (n) => `별 ${n}로 살리기`, giveUp: '그만하기', maxed: '최대',
     lv: (n, m) => `${n}/${m}`, lvOpen: (n) => `Lv ${n}`, owned: (n, m) => `보유 ${n}/${m}`, ad: '광고', adTitle: '별 3배', adWait: '잠시 후 받은 별이 3배가 돼요',
-    adFail: '지금은 광고를 불러오지 못했어요', freeStars: (n) => `+${n} 받기 (3배)`,
+    adFail: '지금은 광고를 불러오지 못했어요',
     wide: '넓은 시작', wideDesc: '시작 케이크가 한 단계씩 넓어져요', slow: '느린 시작', slowDesc: '처음 속도가 한 단계씩 느려져요',
     cushion: '여유 판정', cushionDesc: '딱 맞음이 한 단계씩 너그러워져요', reviveName: '1회 살리기', reviveDesc: '기울어진 직후, 한 판에 한 번 이어 쌓아요',
     pre: '미리 쌓기', preDesc: '무한 쌓기를 1층씩 더 쌓인 채로 시작해요. 끝없이 올릴 수 있어요(단계 도전 제외). 기록·랭킹은 직접 쌓은 층만 세요',
@@ -53,7 +53,7 @@
     shop: 'Shop', holdStars: (n) => `${n} stars`, gotStars: (n) => `You got ${n} stars`, moreStars: (n) => `Watch an ad for +${n} (3×)`,
     reviveUse: (n) => `Revive once (${n})`, reviveBuy: (n) => `Revive for ${n} stars`, giveUp: 'Give up', maxed: 'Max',
     lv: (n, m) => `Lv ${n}/${m}`, lvOpen: (n) => `Lv ${n}`, owned: (n, m) => `Owned ${n}/${m}`, ad: 'Ad', adTitle: 'Triple stars', adWait: 'Your stars will triple in a moment',
-    adFail: 'The ad could not be loaded', freeStars: (n) => `Get +${n} (3×)`,
+    adFail: 'The ad could not be loaded',
     wide: 'Wider start', wideDesc: 'The first tier gets a little wider each level', slow: 'Slower start', slowDesc: 'The opening swing gets a little slower each level',
     cushion: 'Kinder perfects', cushionDesc: 'Perfect drops get a little more forgiving', reviveName: 'One revive', reviveDesc: 'Once a run, keep stacking right after a tip',
     pre: 'Head start', preDesc: 'Endless stacking starts 1 more tier high per level, with no level cap (not in stages). Records and the leaderboard count only tiers you stack',
@@ -458,7 +458,7 @@
     if (info.unlocked.length) setTimeout(() => Sfx.play('power'), 400);
     if (info.run.delivered) Sfx.play('coin');
     const againBtn = $('#againBtn');
-    if (againBtn) againBtn.addEventListener('click', (e) => { e.stopPropagation(); try { if (window.onestoreAd && !(window.kkNoAds && window.kkNoAds.owned())) window.onestoreAd.atBreak(); } catch { /* 광고가 없어도 진행 */ } run = null; startRun(); });
+    if (againBtn) againBtn.addEventListener('click', (e) => { e.stopPropagation(); try { if (window.onestoreAd) window.onestoreAd.atBreak(); } catch { /* 광고가 없어도 진행 */ } run = null; startRun(); });
     const endRevive = $('#reviveBtn');
     const endBuy = $('#reviveBuy');
     const endGive = $('#giveUp');
@@ -558,7 +558,7 @@
       </div>
       ${pending && save.stage.revive > 0 ? `<button class="go" id="reviveBtn">${T.reviveUse(save.stage.revive)}</button>` : ''}
       ${pending && save.stage.revive < 1 ? `<button class="go" id="reviveBuy">${T.reviveBuy(Logic.REVIVE_COST)}</button>` : ''}
-      ${offerBonus ? `<button class="go" id="tripleBtn">${(window.kkNoAds && window.kkNoAds.owned()) ? T.freeStars(extra) : T.moreStars(extra)}</button>` : ''}
+      ${offerBonus ? `<button class="go" id="tripleBtn">${T.moreStars(extra)}</button>` : ''}
       ${info.committed ? `<button class="go" id="stageNext">${more ? T.nextStage : T.retry}</button>` : `<button class="ghost" id="giveUp">${T.giveUp}</button>`}
       ${more ? `<button class="ghost" id="stageRetry">${T.retry}</button>` : ''}
       <div class="row three"><button class="ghost" id="endPick">${T.stagePick}</button><button class="ghost" id="endShop">${T.shop}</button><button class="ghost" id="stageMenu">${T.menu}</button></div>`;
@@ -630,17 +630,15 @@
   function finishBreak() {
     if (!endInfo || endInfo.bonus || endInfo.broke || endInfo.pending) return;
     endInfo.broke = true;
-    try { if (window.onestoreAd && !(window.kkNoAds && window.kkNoAds.owned())) window.onestoreAd.atBreak(); } catch { /* 광고가 없어도 진행 */ }
+    try { if (window.onestoreAd) window.onestoreAd.atBreak(); } catch { /* 광고가 없어도 진행 */ }
   }
   // 보상 광고를 띄울 수 있을 때만 3배 버튼을 보인다(Android 앱의 showRewarded 또는 원스토어 보상 광고).
   function canReward() {
-    if (window.kkNoAds && window.kkNoAds.owned()) return true; // 광고 제거: 광고 없이 바로 3배
     if (window.AndroidAds && typeof window.AndroidAds.showRewarded === 'function') return true;
     return !!(window.onestoreAd && window.onestoreAd.rewardReady && typeof window.onestoreAd.showReward === 'function');
   }
   function watchBonus() {
     if (!endInfo || endInfo.bonus || endInfo.watching || !endInfo.pay) return;
-    if (window.kkNoAds && window.kkNoAds.owned()) { claimBonus(); return; }
     endInfo.watching = true;
     endInfo.adFail = false;
     const finish = (ok) => {
@@ -687,12 +685,10 @@
           ${shopRow('cushion', T.cushion, T.cushionDesc)}
           ${shopRow('pre', T.pre, T.preDesc)}
         </ul>
-        <div class="kkna" id="noadsBox" hidden></div>
         <button class="go" id="shopClose">${T.close}</button>
       </div>`;
     book.classList.add('open');
     $('#shopClose').addEventListener('click', (e) => { e.stopPropagation(); closeBook(); });
-    if (window.kkNoAds) window.kkNoAds.mount($('#noadsBox'), { lang: ko ? 'ko' : 'en' });
     book.querySelectorAll('[data-buy]').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();

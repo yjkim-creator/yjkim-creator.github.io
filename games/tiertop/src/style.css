@@ -145,16 +145,3 @@ li:not(.on) .mini { opacity: .55; }
 .ad .paper { width: min(100%, 340px); }
 .ad .bar { height: 12px; border-radius: 6px; background: #f3e4da; overflow: hidden; margin: 12px 0 4px; }
 .ad .bar i { display: block; height: 100%; width: 0; background: var(--pink-deep); }
-
-/* 광고 제거(shared/iap/noads.js) */
-.kkna { margin: 12px 0 14px; padding: 10px 12px; border: 2px dashed var(--cocoa); border-radius: 14px; background: rgba(255, 253, 248, .7); }
-.kkna-row { display: flex; align-items: center; gap: 10px; }
-.kkna-tx { flex: 1; min-width: 0; }
-.kkna-tx b { display: block; font-size: 16px; font-weight: 900; }
-.kkna-tx small { display: block; font-size: 12px; opacity: .75; margin-top: 2px; line-height: 1.35; }
-.kkna-buy { flex: none; min-width: 84px; min-height: 40px; padding: 0 12px; border: 2px solid var(--cocoa); border-radius: 12px; background: var(--pink); color: #fff; font-weight: 900; font-size: 15px; }
-.kkna-buy:disabled { background: rgba(255, 253, 248, .85); color: var(--cocoa); }
-.kkna-foot { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-.kkna-restore { min-height: 32px; padding: 0 10px; border: 0; background: none; color: var(--cocoa); font-size: 13px; font-weight: 800; text-decoration: underline; }
-.kkna-tip, .kkna-msg { font-size: 12px; opacity: .8; }
-.kkna-msg { font-weight: 800; opacity: 1; color: var(--pink-deep); }
