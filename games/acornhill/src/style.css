@@ -222,3 +222,34 @@ body.shot .paper { animation: none; }
   .undo { padding: 6px 10px; }
 }
 .paper.still { animation: none; }
+
+/* 2026-11-26 게임 방법 안내 */
+.how-btn { position: absolute; right: 10px; top: calc(max(10px, env(safe-area-inset-top)) + 52px); width: 38px; height: 38px; font: 900 19px/1 var(--num); z-index: 6; }
+.guide { z-index: 8; }
+.howto { padding-top: 26px; }
+.howto .step { margin: 0 0 2px; font: 800 12px/1 var(--num); color: var(--bark-2); opacity: .8; }
+.howto h3 { margin: 4px 4px 10px; font-size: 17px; font-weight: 900; color: var(--bark); line-height: 1.3; }
+.howto ul { margin: 10px 0 12px; padding: 0 4px 0 20px; text-align: left; font-size: 14px; font-weight: 600; line-height: 1.5; }
+.howto li + li { margin-top: 5px; }
+.howto li b { color: var(--maple); }
+.howto .row .go.ghost { flex: 1; }
+.fig { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 6px; min-height: 64px; padding: 8px; border-radius: 10px; background: rgba(110, 65, 34, .1); }
+.fig .arr { font-size: 18px; font-weight: 900; color: var(--bark-2); }
+.fig .gap { width: 10px; }
+.fig .emo { font-size: 28px; padding: 0 4px; }
+.mc { position: relative; display: inline-grid; place-items: center; width: 34px; height: 46px; border-radius: 5px; font: 900 17px/1 var(--num); color: var(--bark); background: #fffaf0; border: 2px solid #c9a46e; box-shadow: 0 2px 0 rgba(74, 42, 20, .3); }
+.mc.base { border-color: var(--maple); background: #fff0e4; }
+.mc.ok { border-color: var(--moss); }
+.mc.ok::after { content: '✓'; position: absolute; right: -6px; top: -8px; width: 17px; height: 17px; border-radius: 50%; font: 900 11px/17px var(--font); color: #fff; background: var(--moss); }
+.mc.no { opacity: .55; }
+.mc.no::after { content: '✕'; position: absolute; right: -6px; top: -8px; width: 17px; height: 17px; border-radius: 50%; font: 900 11px/17px var(--font); color: #fff; background: var(--maple); }
+.mc.back { background: linear-gradient(135deg, #9a5a2c, #6e3d1d); border-color: #f2c98a; }
+.mc.back.off { margin-left: -28px; transform: translate(4px, -3px); }
+.pair { position: relative; display: inline-block; width: 52px; height: 58px; }
+.pair .mc { position: absolute; left: 0; top: 0; }
+.pair .mc.over { left: 16px; top: 10px; }
+.pair .mc:only-child { left: 9px; top: 6px; }
+.dots { display: flex; justify-content: center; gap: 6px; margin: 0 0 10px; }
+.dots i { width: 7px; height: 7px; border-radius: 50%; background: rgba(110, 65, 34, .25); }
+.dots i.on { background: var(--maple); }
+body.shot .how-btn { display: none; }

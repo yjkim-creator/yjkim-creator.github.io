@@ -398,7 +398,10 @@
     function stockPose(k) { return { pos: new T.Vector3(STOCK_POS.x + k * 0.004, STOCK_POS.y + k * 0.018, STOCK_POS.z - k * 0.006), rot: new T.Euler(0.05, 0.04, Math.PI) }; }
     function pilePose(k, card) {
       const wob = ((card * 37) % 11) / 11 - 0.5;
-      return { pos: new T.Vector3(PILE_POS.x + wob * 0.12, PILE_POS.y + Math.min(k, 40) * 0.016, PILE_POS.z + wob * 0.06), rot: new T.Euler(0.05, wob * 0.35, 0) };
+      // 40장까지는 0.016씩, 그 뒤로도 0.008씩은 꼭 높인다. 예전엔 40장에서 높이를 멈춰서
+      // 41장째부터 새로 올린 패가 같은 높이의 앞 패 밑에 묻혀 '이전 패'가 보였다.
+      const lift = Math.min(k, 40) * 0.016 + Math.max(0, k - 40) * 0.008;
+      return { pos: new T.Vector3(PILE_POS.x + wob * 0.12, PILE_POS.y + lift, PILE_POS.z + wob * 0.06), rot: new T.Euler(0.05, wob * 0.35, 0) };
     }
     const faceDown = (rot) => new T.Euler(rot.x, rot.y, rot.z + Math.PI);
 

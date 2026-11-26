@@ -84,6 +84,34 @@
     helpLines: ['🌟 Golden cards give 10 extra acorns.', '🔒 Locked cards open once you clear the 🔑 key card.', 'Spend acorns in the Squirrel Shop on helps, undos, upgrades and card backs.'],
   };
 
+  // 2026-11-26 게임 방법 안내(처음 켤 때 자동으로, 그 뒤로는 ? 단추와 메뉴에서). 장마다 그림 한 줄 + 설명.
+  const H = LANG === 'ja' ? {
+    title: '遊び方', prev: '前へ', next: '次へ', start: 'はじめる', skip: 'とばす', menuBtn: '📖 遊び方を見る',
+    pages: [
+      { t: 'カゴにつなげて丘を片づけよう', fig: 'match', lines: ['丘のカードを全部カゴに入れたら勝ちです。', 'カゴの一番上のカードより<b>1つ大きいか小さい</b>カードをタップします。', '<b>13と1</b>もつながります(13 → 1、1 → 13)。'] },
+      { t: '表のカードだけ取れます', fig: 'cover', lines: ['上に何も重なっていないカードだけ表向きで、取ることができます。', '上のカードを取ると、下のカードがめくれて開きます。', '続けて取るほど<b>連続</b>が伸びて得点が大きくなります。'] },
+      { t: '取れないときは山札をめくる', fig: 'stock', lines: ['つながるカードがないときは左下の<b>めくる</b>を押します。', '山札の1枚がカゴの一番上にのり、新しい数字から続けられます。連続は途切れます。', '山札がなくなって取れるカードもなければ負けです。山札を多く残して勝つほど★が増えます。'] },
+      { t: 'どんぐりの助け', fig: 'tools', lines: ['🌰 <b>ヒント</b>: 押してから表のカードを選ぶと、数字に関係なく取れます。', '↩ <b>戻す</b>: 直前の一手を取り消します。', '🌟 金のカードはどんぐり+10、🔒 鍵のカードは 🔑 のカードを先に取ると開きます。', '集めたどんぐりはメニューのリスのお店で使えます。'] },
+    ],
+  } : ko ? {
+    title: '게임 방법', prev: '이전', next: '다음', start: '시작하기', skip: '건너뛰기', menuBtn: '📖 게임 방법 보기',
+    pages: [
+      { t: '바구니에 이어서 언덕을 비워요', fig: 'match', lines: ['언덕 위의 패를 모두 바구니로 걷어 내면 이겨요.', '바구니 맨 위 패보다 숫자가 <b>1 크거나 1 작은</b> 패를 톡 누르세요.', '<b>13과 1</b>도 이어져요 (13 → 1, 1 → 13).'] },
+      { t: '앞면이 보이는 패만 걷어요', fig: 'cover', lines: ['위에 다른 패가 겹쳐 있지 않은 패만 앞면이 보이고 걷을 수 있어요.', '위 패를 걷으면 아래 패가 뒤집혀 열려요.', '쉬지 않고 이어 걷을수록 <b>연속</b>이 늘고 점수가 커져요.'] },
+      { t: '걷을 패가 없으면 더미를 뒤집어요', fig: 'stock', lines: ['이어지는 패가 없으면 왼쪽 아래 <b>뒤집기</b>를 누르세요.', '더미 한 장이 바구니 맨 위로 올라와 새 숫자로 이어 갈 수 있어요. 연속은 끊겨요.', '더미가 바닥나고 걷을 패도 없으면 져요. 더미를 많이 남기고 이길수록 ★이 늘어요.'] },
+      { t: '도토리의 도움', fig: 'tools', lines: ['🌰 <b>도움</b>: 누른 뒤 앞면 패를 고르면 숫자와 상관없이 걷어요.', '↩ <b>되돌리기</b>: 방금 한 수를 물러요.', '🌟 황금 패는 도토리 +10, 🔒 자물쇠 패는 🔑 열쇠 패를 먼저 걷어야 열려요.', '모은 도토리는 메뉴의 다람쥐 가게에서 쓸 수 있어요.'] },
+    ],
+  } : {
+    title: 'How to play', prev: 'Back', next: 'Next', start: 'Start', skip: 'Skip', menuBtn: '📖 How to play',
+    pages: [
+      { t: 'Clear the hill into the basket', fig: 'match', lines: ['Move every card on the hill into the basket to win.', 'Tap a card that is <b>one higher or one lower</b> than the top card in the basket.', '<b>13 and 1</b> connect too (13 → 1, 1 → 13).'] },
+      { t: 'Only face-up cards can be taken', fig: 'cover', lines: ['A card is face up and free only when nothing is lying on top of it.', 'Take the cards on top and the card underneath flips open.', 'Keep taking cards without a break to grow your <b>chain</b> and score more.'] },
+      { t: 'Stuck? Flip the stock', fig: 'stock', lines: ['When no card fits, press <b>Flip</b> at the bottom left.', 'One stock card lands on top of the basket, giving you a new number. Your chain resets.', 'If the stock runs out and nothing fits, the hill is lost. Win with more stock left for more ★.'] },
+      { t: 'Acorn helpers', fig: 'tools', lines: ['🌰 <b>Help</b>: press it, then pick any face-up card to take it whatever the number.', '↩ <b>Undo</b>: take back your last move.', '🌟 Golden cards give +10 acorns. 🔒 Locked cards open after you take the 🔑 key card.', 'Spend acorns in the Squirrel Shop from the menu.'] },
+    ],
+  };
+  const HOW_KEY = 'acornhill-how-v1';
+
   const shotN = Number((location.hash.match(/shot=(\d+)/) || [])[1]) || 0;
   const shotMode = shotN > 0;
   if (shotMode) document.body.classList.add('shot');
@@ -133,6 +161,7 @@
         <button class="round menu-btn" aria-label="${L.menu}"><i></i><i></i><i></i></button>
       </div>
     </header>
+    <button class="round how-btn" aria-label="${H.title}">?</button>
     <div class="coach" hidden></div>
     <div class="pops"></div>
     <footer class="dock">
@@ -141,7 +170,8 @@
       <button class="help"><span class="nut"></span><b>${L.help}</b><em class="wild">1</em></button>
     </footer>
     <section class="sheet result" hidden></section>
-    <section class="sheet panel" hidden></section>`;
+    <section class="sheet panel" hidden></section>
+    <section class="sheet guide" hidden></section>`;
   app.append(ui);
   const $ = (sel) => ui.querySelector(sel);
   const signSmall = $('.sign small');
@@ -276,7 +306,7 @@
     let tip = hint;
     if (!tip && armed) tip = L.armed;
     if (!tip && !demo && save.played === 0 && state.moves < 3 && state.mode === 'map') tip = L.coach;
-    coach.hidden = !tip;
+    coach.hidden = !tip || !guide.hidden;
     coach.textContent = tip;
   }
   let hintTimer = 0;
@@ -678,22 +708,24 @@
         ${save.hill >= Logic.BASE_STAGES ? `<p class="note">${L.endless}</p>` : ''}
         <div class="map">${nodes}</div>
         <div class="row small"><span class="stat">${L.best(save.best)} · ${L.wins(save.wins)}</span><button class="go ghost" data-rank-open>${L.rank}</button></div>
-        <details class="how"><summary>${L.how}</summary><ul>${L.howLines.concat(X.helpLines).map((l) => `<li>${l}</li>`).join('')}</ul></details>
+        <div class="row small"><button class="go ghost wide" data-act="guide">${H.menuBtn}</button></div>
       </div>`;
     const wasOpen = !panel.hidden;
     panel.hidden = false;
     if (wasOpen) panel.querySelector('.paper').scrollTop = keepScroll;
     else Sfx.play('rustle');
+    if (!hint) coach.hidden = true; // 첫 판 안내 쪽지가 메뉴를 가리지 않게
   }
   // 닫을 때 내용도 비운다(숨긴 메뉴의 그림·이모지가 남아 있을 필요가 없다).
   const hidePanel = () => { panel.hidden = true; panel.innerHTML = ''; };
-  const closePanel = () => { hidePanel(); Sfx.play('back'); };
+  const closePanel = () => { hidePanel(); Sfx.play('back'); paint(); };
   $('.menu-btn').addEventListener('click', () => { if (demo) return; startMusic(); openPanel(); });
   panel.addEventListener('click', (e) => {
     if (e.target === panel) { closePanel(); return; }
     const b = e.target.closest('[data-act],[data-hill],[data-buy],[data-back]');
     if (!b || demo) return;
     if (b.dataset.act === 'close') { closePanel(); return; }
+    if (b.dataset.act === 'guide') { hidePanel(); Sfx.play('select'); openGuide(); return; }
     if (b.dataset.buy) {
       const [kind, id] = b.dataset.buy.split(':');
       const next = Logic.buy(save, kind, id);
@@ -738,6 +770,54 @@
     else if (b.dataset.hill) begin(makeRound('map', Number(b.dataset.hill)));
   });
 
+  // ---------- 게임 방법 ----------
+  const guide = $('.guide');
+  const FIGS = {
+    match: '<span class="mc base">5</span><span class="arr">→</span><span class="mc ok">4</span><span class="mc ok">6</span><span class="mc no">9</span><span class="gap"></span><span class="mc base">13</span><span class="arr">→</span><span class="mc ok">1</span>',
+    cover: '<span class="pair"><span class="mc back"></span><span class="mc ok over">7</span></span><span class="arr">→</span><span class="pair"><span class="mc ok">3</span></span>',
+    stock: '<span class="mc back"></span><span class="mc back off"></span><span class="arr">→</span><span class="mc base">8</span>',
+    tools: '<span class="emo">🌰</span><span class="emo">↩</span><span class="emo">🌟</span><span class="emo">🔒🔑</span>',
+  };
+  let guidePage = 0;
+  function paintGuide() {
+    const p = H.pages[guidePage];
+    const last = guidePage === H.pages.length - 1;
+    guide.innerHTML = `
+      <div class="card-sheet howto">
+        <div class="ribbon">${H.title}</div>
+        <p class="step">${guidePage + 1} / ${H.pages.length}</p>
+        <h3>${p.t}</h3>
+        <div class="fig">${FIGS[p.fig]}</div>
+        <ul>${p.lines.map((l) => `<li>${l}</li>`).join('')}</ul>
+        <div class="dots">${H.pages.map((_, i) => `<i class="${i === guidePage ? 'on' : ''}"></i>`).join('')}</div>
+        <div class="row">
+          ${guidePage > 0 ? `<button class="go" data-g="prev">${H.prev}</button>` : `<button class="go ghost" data-g="done">${H.skip}</button>`}
+          <button class="go primary" data-g="${last ? 'done' : 'next'}">${last ? H.start : H.next}</button>
+        </div>
+      </div>`;
+  }
+  function openGuide() {
+    guidePage = 0;
+    paintGuide();
+    guide.hidden = false;
+    coach.hidden = true;
+  }
+  function closeGuide() {
+    guide.hidden = true;
+    guide.innerHTML = '';
+    try { localStorage.setItem(HOW_KEY, '1'); } catch { /* 저장이 막혀도 괜찮다 */ }
+    paint();
+  }
+  guide.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-g]');
+    if (!b) return;
+    const g = b.dataset.g;
+    if (g === 'next') { guidePage = Math.min(H.pages.length - 1, guidePage + 1); Sfx.play('select'); paintGuide(); }
+    else if (g === 'prev') { guidePage = Math.max(0, guidePage - 1); Sfx.play('back'); paintGuide(); }
+    else { Sfx.play('select'); closeGuide(); }
+  });
+  $('.how-btn').addEventListener('click', () => { if (demo) return; startMusic(); Sfx.play('rustle'); openGuide(); });
+
   // ---------- 시연(녹화용) ----------
   let demoPlan = null;
   function demoRound(k) {
@@ -777,6 +857,7 @@
 
   window.appFlush = () => { if (state && !ended && !demo) save.round = state; writeSave(); };
   window.appBack = () => {
+    if (!guide.hidden) { closeGuide(); return true; }
     if (!panel.hidden) { closePanel(); return true; }
     if (armed) { armed = false; paint(); return true; }
     if (!resultSheet.hidden) { openPanel(); return true; }
@@ -843,4 +924,10 @@
   if (shotMode) shot(shotN);
   else if (save.round) begin(save.round, false);
   else begin(makeRound('map', save.hill), false);
+  // 처음 켠 사람(아직 한 판도 끝내지 않았고 안내를 본 적 없음)에게는 게임 방법을 먼저 보여 준다.
+  if (!shotMode) {
+    let seen = false;
+    try { seen = localStorage.getItem(HOW_KEY) === '1'; } catch { seen = false; }
+    if (!seen && save.played === 0) setTimeout(() => { if (!demo && panel.hidden && resultSheet.hidden) openGuide(); }, 900);
+  }
 })();
