@@ -16,7 +16,7 @@
     slow: { max: 5, step: 0.16, costs: [4, 8, 12, 18, 24] },
     cushion: { max: 3, step: 0.012, costs: [8, 14, 22] },
     // 미리 쌓기: 무한 쌓기(오늘의 주문)에서만 단계마다 1층씩 쌓인 채로 시작한다. 단계 도전에는 쓰지 않는다.
-    // 미리 쌓은 층은 주문 목표에는 들어가지만 기록(최고·오늘 최고·전국 랭킹)과 도감 누적에는 넣지 않는다.
+    // 미리 쌓은 층은 주문 목표·기록(최고·오늘 최고·전국 랭킹)에 들어간다. 도감 누적·할 일·별 비율·흔들림 빠르기는 직접 쌓은 층만 센다(빈 판을 되풀이해 맛을 여는 일을 막는다).
     // 끝없이 올릴 수 있다(max 는 저장값 안전 한도일 뿐). 11레벨부터 값은 20 + 4 × (넘은 레벨).
     pre: { max: 999, step: 1, endless: true, costs: [3, 4, 5, 6, 8, 10, 12, 14, 16, 20] },
   };
@@ -273,7 +273,7 @@
   // 한 판이 끝났을 때 기록을 더한다. 새로 열린 맛과 새 기록 여부를 같이 돌려준다.
   function recordRun(save, run, key) {
     const s = sanitize(save);
-    const h = own(run);
+    const h = height(run); // 기록·랭킹: 미리 쌓은 층 포함
     const before = unlockedFlavors(s.totalLayers).length;
     const daily = s.daily.key === key ? { ...s.daily } : { key, best: 0, done: false };
     daily.best = Math.max(daily.best, h);
@@ -285,7 +285,7 @@
     const next = {
       ...s,
       best: Math.max(s.best, h),
-      totalLayers: s.totalLayers + h,
+      totalLayers: s.totalLayers + own(run),
       runs: s.runs + 1,
       daily,
       stamps: s.stamps + (stamped ? 1 : 0),

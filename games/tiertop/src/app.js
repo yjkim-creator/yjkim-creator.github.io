@@ -22,8 +22,8 @@
     adFail: '지금은 광고를 불러오지 못했어요',
     wide: '넓은 시작', wideDesc: '시작 케이크가 한 단계씩 넓어져요', slow: '느린 시작', slowDesc: '처음 속도가 한 단계씩 느려져요',
     cushion: '여유 판정', cushionDesc: '딱 맞음이 한 단계씩 너그러워져요', reviveName: '1회 살리기', reviveDesc: '기울어진 직후, 한 판에 한 번 이어 쌓아요',
-    pre: '미리 쌓기', preDesc: '무한 쌓기를 1층씩 더 쌓인 채로 시작해요. 끝없이 올릴 수 있어요(단계 도전 제외). 기록·랭킹은 직접 쌓은 층만 세요',
-    preNote: (n) => `미리 쌓은 ${n}층은 기록에서 빼요`,
+    pre: '미리 쌓기', preDesc: '무한 쌓기를 1층씩 더 쌓인 채로 시작해요. 끝없이 올릴 수 있어요(단계 도전 제외). 미리 쌓은 층도 기록·랭킹에 들어가요',
+    preNote: (n) => `미리 쌓은 ${n}층 포함`,
     quests: '오늘의 할 일', questsBtn: (d, n) => `📋 오늘의 할 일 ${d}/${n}`, questAll: (n) => `셋 다 하면 보너스 별 ${n}`, questAllDone: '오늘 할 일을 모두 끝냈어요. 내일 새 할 일이 와요',
     questDone: (t, n) => `할 일 완료: ${t} · 별 +${n}`, questBonus: (n) => `오늘 할 일 모두 완료! 보너스 별 +${n}`,
     q: { perf: (n) => `딱 맞음 ${n}번`, tiers: (n) => `직접 ${n}층 쌓기`, stage: (n) => `단계 ${n}번 통과`, chain: (n) => `한 판에 딱 맞음 ${n}연속`, order: () => '오늘의 주문 완성', runs: (n) => `${n}판 굽기` },
@@ -60,8 +60,8 @@
     adFail: 'The ad could not be loaded',
     wide: 'Wider start', wideDesc: 'The first tier gets a little wider each level', slow: 'Slower start', slowDesc: 'The opening swing gets a little slower each level',
     cushion: 'Kinder perfects', cushionDesc: 'Perfect drops get a little more forgiving', reviveName: 'One revive', reviveDesc: 'Once a run, keep stacking right after a tip',
-    pre: 'Head start', preDesc: 'Endless stacking starts 1 more tier high per level, with no level cap (not in stages). Records and the leaderboard count only tiers you stack',
-    preNote: (n) => `${n} head-start tier${n === 1 ? '' : 's'} not counted`,
+    pre: 'Head start', preDesc: 'Endless stacking starts 1 more tier high per level, with no level cap (not in stages). Head-start tiers count toward records and the leaderboard',
+    preNote: (n) => `Includes ${n} head-start tier${n === 1 ? '' : 's'}`,
     quests: "Today's tasks", questsBtn: (d, n) => `📋 Today's tasks ${d}/${n}`, questAll: (n) => `Finish all three for ${n} bonus stars`, questAllDone: "All of today's tasks are done. New ones arrive tomorrow",
     questDone: (t, n) => `Task done: ${t} · +${n} stars`, questBonus: (n) => `All tasks done! +${n} bonus stars`,
     q: { perf: (n) => `${n} perfect drops`, tiers: (n) => `Stack ${n} tiers yourself`, stage: (n) => `Clear ${n} stage${n === 1 ? '' : 's'}`, chain: (n) => `${n} perfects in a row`, order: () => "Complete today's order", runs: (n) => `Bake ${n} cakes` },
@@ -197,8 +197,8 @@
     const c = Logic.customer(order.customer);
     const h = r ? Logic.height(r) : 0;
     const pre = r && !stageOn() ? r.pre || 0 : 0;
-    $('#count').textContent = String(h - pre);
-    $('#preTag').textContent = pre ? `+${pre}` : '';
+    $('#count').textContent = String(h);
+    $('#preTag').textContent = pre ? (ko ? `미리 ${pre}층 포함` : `incl. ${pre} head start`) : '';
     const target = stageOn() ? srun.target : order.target;
     $('#ticket .who').textContent = stageOn() ? `${T.stageN(srun.stage)} · ${dev(Logic.stageSpec(srun.stage))[0]}` : T.order(cname(c));
     $('#ticket .goal').textContent = `${Math.min(h, target)} / ${target}`;
@@ -352,7 +352,7 @@
     writeSave();
     mode = 'end';
     if (show === false) {
-      if (window.Rank && !/shot=/.test(location.hash)) Rank.submit(Logic.own(finished));
+      if (window.Rank && !/shot=/.test(location.hash)) Rank.submit(Logic.height(finished));
     } else {
       showEnd();
       if (finished.delivered) placeTopper(finished);
@@ -486,7 +486,7 @@
   function showEnd() {
     const info = endInfo;
     const pending = Boolean(info.pending && run && run.over && !run.revived);
-    const h = Logic.own(info.run);
+    const h = Logic.height(info.run);
     const pre = info.run.pre || 0;
     if (!pending && window.Rank && !/shot=/.test(location.hash)) Rank.submit(h);
     const st = Logic.stars(info.run);
