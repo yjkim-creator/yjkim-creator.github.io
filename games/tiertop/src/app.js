@@ -18,10 +18,12 @@
     stars: (n) => `별 ${n}개`, reached: (h, t) => `${h} / ${t}층`, endless: '끝없는 단계', locked: '앞 단계를 깨면 열려요',
     shop: '상점', holdStars: (n) => `별 ${n}`, gotStars: (n) => `별 ${n}개를 받았어요`, moreStars: (n) => `광고 보고 +${n} (3배)`,
     reviveUse: (n) => `1회 살리기 (${n})`, reviveBuy: (n) => `별 ${n}로 살리기`, giveUp: '그만하기', maxed: '최대',
-    lv: (n, m) => `${n}/${m}`, owned: (n, m) => `보유 ${n}/${m}`, ad: '광고', adTitle: '별 3배', adWait: '잠시 후 받은 별이 3배가 돼요',
+    lv: (n, m) => `${n}/${m}`, lvOpen: (n) => `Lv ${n}`, owned: (n, m) => `보유 ${n}/${m}`, ad: '광고', adTitle: '별 3배', adWait: '잠시 후 받은 별이 3배가 돼요',
     adFail: '지금은 광고를 불러오지 못했어요',
     wide: '넓은 시작', wideDesc: '시작 케이크가 한 단계씩 넓어져요', slow: '느린 시작', slowDesc: '처음 속도가 한 단계씩 느려져요',
     cushion: '여유 판정', cushionDesc: '딱 맞음이 한 단계씩 너그러워져요', reviveName: '1회 살리기', reviveDesc: '기울어진 직후, 한 판에 한 번 이어 쌓아요',
+    pre: '미리 쌓기', preDesc: '무한 쌓기를 1층씩 더 쌓인 채로 시작해요. 끝없이 올릴 수 있어요(단계 도전 제외). 기록·랭킹은 직접 쌓은 층만 세요',
+    preNote: (n) => `미리 쌓은 ${n}층은 기록에서 빼요`,
     devices: {
       basic: ['흔들 짤주머니', '짤주머니가 앞뒤로 흔들려요. 가운데를 지날 때 톡!'],
       wind: ['산들바람', '바람이 떨어지는 층을 밀어요. 동그란 고리가 층이 닿을 자리예요. 고리가 가운데 점에 올 때 톡!'],
@@ -50,10 +52,12 @@
     stars: (n) => `${n} stars`, reached: (h, t) => `${h} / ${t} tiers`, endless: 'Endless stages', locked: 'Clear the stage before it',
     shop: 'Shop', holdStars: (n) => `${n} stars`, gotStars: (n) => `You got ${n} stars`, moreStars: (n) => `Watch an ad for +${n} (3×)`,
     reviveUse: (n) => `Revive once (${n})`, reviveBuy: (n) => `Revive for ${n} stars`, giveUp: 'Give up', maxed: 'Max',
-    lv: (n, m) => `Lv ${n}/${m}`, owned: (n, m) => `Owned ${n}/${m}`, ad: 'Ad', adTitle: 'Triple stars', adWait: 'Your stars will triple in a moment',
+    lv: (n, m) => `Lv ${n}/${m}`, lvOpen: (n) => `Lv ${n}`, owned: (n, m) => `Owned ${n}/${m}`, ad: 'Ad', adTitle: 'Triple stars', adWait: 'Your stars will triple in a moment',
     adFail: 'The ad could not be loaded',
     wide: 'Wider start', wideDesc: 'The first tier gets a little wider each level', slow: 'Slower start', slowDesc: 'The opening swing gets a little slower each level',
     cushion: 'Kinder perfects', cushionDesc: 'Perfect drops get a little more forgiving', reviveName: 'One revive', reviveDesc: 'Once a run, keep stacking right after a tip',
+    pre: 'Head start', preDesc: 'Endless stacking starts 1 more tier high per level, with no level cap (not in stages). Records and the leaderboard count only tiers you stack',
+    preNote: (n) => `${n} head-start tier${n === 1 ? '' : 's'} not counted`,
     devices: {
       basic: ['Swinging bag', 'The piping bag swings back and forth. Tap as it passes the middle!'],
       wind: ['Breeze', 'Wind pushes the falling tier. The ring shows where it will land. Tap when the ring meets the center dot!'],
@@ -112,7 +116,7 @@
   hud.className = 'hud';
   hud.innerHTML = `
     <div class="ticket" id="ticket"><span class="who"></span><span class="bar"><i></i></span><span class="goal"></span></div>
-    <div class="count"><b id="count">0</b><small id="streak"></small></div>
+    <div class="count"><b id="count">0</b><em id="preTag"></em><small id="streak"></small></div>
     <div class="tools"><button class="round" id="bookBtn" aria-label="${T.book}">${icon.book}</button><button class="round" id="muteBtn" aria-label="${T.sound}"></button></div>`;
   const hint = document.createElement('div');
   hint.className = 'hint';
@@ -181,7 +185,9 @@
     const r = cur();
     const c = Logic.customer(order.customer);
     const h = r ? Logic.height(r) : 0;
-    $('#count').textContent = String(h);
+    const pre = r && !stageOn() ? r.pre || 0 : 0;
+    $('#count').textContent = String(h - pre);
+    $('#preTag').textContent = pre ? `+${pre}` : '';
     const target = stageOn() ? srun.target : order.target;
     $('#ticket .who').textContent = stageOn() ? `${T.stageN(srun.stage)} · ${dev(Logic.stageSpec(srun.stage))[0]}` : T.order(cname(c));
     $('#ticket .goal').textContent = `${Math.min(h, target)} / ${target}`;
@@ -334,7 +340,7 @@
     writeSave();
     mode = 'end';
     if (show === false) {
-      if (window.Rank && !/shot=/.test(location.hash)) Rank.submit(Logic.height(finished));
+      if (window.Rank && !/shot=/.test(location.hash)) Rank.submit(Logic.own(finished));
     } else {
       showEnd();
       if (finished.delivered) placeTopper(finished);
@@ -428,7 +434,8 @@
   function showEnd() {
     const info = endInfo;
     const pending = Boolean(info.pending && run && run.over && !run.revived);
-    const h = Logic.height(info.run);
+    const h = Logic.own(info.run);
+    const pre = info.run.pre || 0;
     if (!pending && window.Rank && !/shot=/.test(location.hash)) Rank.submit(h);
     const st = Logic.stars(info.run);
     sheet.innerHTML = `
@@ -438,9 +445,9 @@
         <div class="stars">${[1, 2, 3].map((n) => `<i class="${n <= st ? 'on' : ''}"></i>`).join('')}</div>
         <dl><div><dt>${T.perfect}</dt><dd>${info.run.perfects}</dd></div><div><dt>${T.best}</dt><dd>${info.save.best}</dd></div><div><dt>${T.stamps}</dt><dd>${info.save.stamps}</dd></div></dl>
         ${info.unlocked.map((f) => `<p class="unlock"><span class="sw" style="--c:${f.color};--k:${f.cream}"><i></i></span>${T.unlocked(fname(f))}</p>`).join('')}
+        ${pre ? `<p class="next">${T.preNote(pre)}</p>` : ''}
         ${goalLine(info, h)}
         <p class="next">${nextLine()}</p>
-        ${save.stage.best ? rankLine() : ''}
       </div>
       ${pending && save.stage.revive > 0 ? `<button class="go" id="reviveBtn">${T.reviveUse(save.stage.revive)}</button>` : ''}
       ${pending && save.stage.revive < 1 ? `<button class="go" id="reviveBuy">${T.reviveBuy(Logic.REVIVE_COST)}</button>` : ''}
@@ -458,7 +465,6 @@
     if (endRevive) endRevive.addEventListener('click', (e) => { e.stopPropagation(); useRevive(); });
     if (endBuy) endBuy.addEventListener('click', (e) => { e.stopPropagation(); buyReviveAndUse(); });
     if (endGive) endGive.addEventListener('click', (e) => { e.stopPropagation(); commitDaily(); });
-    fillRank();
     $('#endBook').addEventListener('click', (e) => { e.stopPropagation(); openBook(); });
     $('#endMenu').addEventListener('click', (e) => { e.stopPropagation(); if (info.pending) commitDaily(false); Sfx.play('back'); world.topper.visible = false; syncCake(); showTitle(); });
     paintHud();
@@ -660,8 +666,9 @@
     } else {
       const def = Logic.UPGRADES[id];
       const lv = save.stage.up[id];
-      desc = `${desc} · ${T.lv(lv, def.max)}`;
-      if (lv < def.max) { label = `${def.costs[lv]} ★`; disabled = purse < def.costs[lv]; }
+      desc = `${desc} · ${def.endless ? T.lvOpen(lv) : T.lv(lv, def.max)}`;
+      const cost = Logic.upCost(id, lv);
+      if (lv < def.max) { label = `${cost} ★`; disabled = purse < cost; }
     }
     return `<li><div><b>${title}</b><small>${desc}</small></div><button data-buy="${id}" ${disabled ? 'disabled' : ''}>${label}</button></li>`;
   }
@@ -676,6 +683,7 @@
           ${shopRow('wide', T.wide, T.wideDesc)}
           ${shopRow('slow', T.slow, T.slowDesc)}
           ${shopRow('cushion', T.cushion, T.cushionDesc)}
+          ${shopRow('pre', T.pre, T.preDesc)}
         </ul>
         <button class="go" id="shopClose">${T.close}</button>
       </div>`;

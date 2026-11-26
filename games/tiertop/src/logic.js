@@ -15,7 +15,18 @@
     wide: { max: 5, step: 0.05, costs: [4, 8, 12, 18, 24] },
     slow: { max: 5, step: 0.16, costs: [4, 8, 12, 18, 24] },
     cushion: { max: 3, step: 0.012, costs: [8, 14, 22] },
+    // 미리 쌓기: 무한 쌓기(오늘의 주문)에서만 단계마다 1층씩 쌓인 채로 시작한다. 단계 도전에는 쓰지 않는다.
+    // 미리 쌓은 층은 주문 목표에는 들어가지만 기록(최고·오늘 최고·전국 랭킹)과 도감 누적에는 넣지 않는다.
+    // 끝없이 올릴 수 있다(max 는 저장값 안전 한도일 뿐). 11레벨부터 값은 20 + 4 × (넘은 레벨).
+    pre: { max: 999, step: 1, endless: true, costs: [3, 4, 5, 6, 8, 10, 12, 14, 16, 20] },
   };
+  // 강화 lv → lv+1 값
+  function upCost(id, lv) {
+    const def = UPGRADES[id];
+    if (!def) return Infinity;
+    if (lv < def.costs.length) return def.costs[lv];
+    return def.endless ? def.costs[def.costs.length - 1] + 4 * (lv - def.costs.length + 1) : Infinity;
+  }
   function slackOf(run) {
     const c = run && run.up && run.up.cushion ? run.up.cushion : 0;
     return PERFECT + c * UPGRADES.cushion.step;
@@ -34,6 +45,18 @@
     { id: 'mint', ko: '민트', en: 'Mint', color: '#3fc4a2', cream: '#aeeedd', need: 360 },
     { id: 'blacksesame', ko: '흑임자', en: 'Black Sesame', color: '#3a3740', cream: '#a8a5ae', need: 450 },
     { id: 'pumpkin', ko: '단호박', en: 'Pumpkin', color: '#e8731f', cream: '#ffc690', need: 550 },
+    { id: 'sweetpotato', ko: '고구마', en: 'Sweet Potato', color: '#c98a4b', cream: '#f3d3a6', need: 660 },
+    { id: 'cherry', ko: '체리', en: 'Cherry', color: '#c2183b', cream: '#ff9bb0', need: 780 },
+    { id: 'peach', ko: '복숭아', en: 'Peach', color: '#ff9f7a', cream: '#ffe0cf', need: 910 },
+    { id: 'yuzu', ko: '유자', en: 'Yuzu', color: '#f7b500', cream: '#fff0a8', need: 1050 },
+    { id: 'coffee', ko: '커피', en: 'Coffee', color: '#7a4b2e', cream: '#d9b99b', need: 1200 },
+    { id: 'caramel', ko: '캐러멜', en: 'Caramel', color: '#c9802d', cream: '#f2cf96', need: 1360 },
+    { id: 'pistachio', ko: '피스타치오', en: 'Pistachio', color: '#9cc47a', cream: '#dcefc4', need: 1530 },
+    { id: 'coconut', ko: '코코넛', en: 'Coconut', color: '#d9cbb3', cream: '#fbf7ef', need: 1710 },
+    { id: 'raspberry', ko: '라즈베리', en: 'Raspberry', color: '#d6245f', cream: '#f7a8c4', need: 1900 },
+    { id: 'cheese', ko: '치즈', en: 'Cheesecake', color: '#ffd76e', cream: '#fff4cc', need: 2100 },
+    { id: 'cottoncandy', ko: '솜사탕', en: 'Cotton Candy', color: '#ff9ed8', cream: '#bfe6ff', need: 2320 },
+    { id: 'injeolmi', ko: '인절미', en: 'Injeolmi', color: '#d2a75c', cream: '#efdcae', need: 2550 },
   ];
 
   const CUSTOMERS = [
@@ -117,13 +140,15 @@
     const ids = flavorIds && flavorIds.length ? flavorIds : order.flavors;
     const load = normalizeUp(up);
     const r = Math.min(WIDE_CAP, Math.round((BASE_R + load.wide * UPGRADES.wide.step) * 1000) / 1000);
+    const pre = load.pre * UPGRADES.pre.step;
     return {
       mode: 'daily',
       order: order.key,
       target: order.target,
       seed: order.seed,
       flavors: ids.slice(),
-      layers: [{ x: 0, z: 0, r, flavor: ids[0] }],
+      layers: startLayers(r, pre, ids),
+      pre,
       score: 0,
       streak: 0,
       bestStreak: 0,
@@ -134,8 +159,16 @@
       revived: false,
     };
   }
+  // 받침 한 층 + 미리 쌓은 층(모두 가운데, 같은 폭)
+  function startLayers(r, pre, ids) {
+    const out = [];
+    for (let i = 0; i <= pre; i += 1) out.push({ x: 0, z: 0, r, flavor: ids[i % ids.length] });
+    return out;
+  }
   const top = (run) => run.layers[run.layers.length - 1];
   const height = (run) => run.layers.length - 1; // 첫 층(받침)은 세지 않는다
+  // 직접 쌓은 층: 기록·랭킹·별·흔들림 빠르기는 이것으로 센다(미리 쌓은 층 제외).
+  const own = (run) => Math.max(0, height(run) - (run.pre || 0));
   const flavorAt = (run, index) => run.flavors[index % run.flavors.length];
 
   // 떨어뜨린 위치(접시 기준 x, z)로 새 층을 놓는다. 돌려주는 것: { run, event }
@@ -219,11 +252,11 @@
   // 단계 기록: 예전 저장에는 없으므로 비어 있으면 0단계부터.
   // stars(0~3)는 그 단계의 실력 별이고 랭킹에 쓴다. purse는 깰 때마다 모으는 쓸 수 있는 별이다. 둘은 섞지 않는다.
   function freshStage() {
-    return { best: 0, stars: [], plays: 0, purse: 0, revive: 0, up: { wide: 0, slow: 0, cushion: 0 } };
+    return { best: 0, stars: [], plays: 0, purse: 0, revive: 0, up: { wide: 0, slow: 0, cushion: 0, pre: 0 } };
   }
   function normalizeUp(raw) {
     const u = raw && typeof raw === 'object' ? raw : {};
-    return { wide: num(u.wide, 0, 5), slow: num(u.slow, 0, 5), cushion: num(u.cushion, 0, 3) };
+    return { wide: num(u.wide, 0, 5), slow: num(u.slow, 0, 5), cushion: num(u.cushion, 0, 3), pre: num(u.pre, 0, UPGRADES.pre.max) };
   }
   function sanitizeStage(raw) {
     const st = raw && typeof raw === 'object' ? raw : {};
@@ -238,7 +271,7 @@
   // 한 판이 끝났을 때 기록을 더한다. 새로 열린 맛과 새 기록 여부를 같이 돌려준다.
   function recordRun(save, run, key) {
     const s = sanitize(save);
-    const h = height(run);
+    const h = own(run);
     const before = unlockedFlavors(s.totalLayers).length;
     const daily = s.daily.key === key ? { ...s.daily } : { key, best: 0, done: false };
     daily.best = Math.max(daily.best, h);
@@ -265,7 +298,7 @@
   function sanitizeRun(raw, order) {
     if (!raw || typeof raw !== 'object' || raw.order !== order.key || raw.over || !Array.isArray(raw.layers)) return null;
     const ids = new Set(FLAVORS.map((f) => f.id));
-    const layers = raw.layers.slice(0, 2000);
+    const layers = raw.layers.slice(0, 3000);
     if (!layers.length) return null;
     for (const l of layers) {
       if (!l || ![l.x, l.z, l.r].every(Number.isFinite) || l.r < MIN_R || l.r > WIDE_CAP || Math.hypot(l.x, l.z) > 5 || !ids.has(l.flavor)) return null;
@@ -273,10 +306,11 @@
     const run = newRun(order, null, raw.up);
     run.layers = layers.map((l) => ({ x: l.x, z: l.z, r: l.r, flavor: l.flavor }));
     run.revived = raw.revived === true;
+    run.pre = Math.min(num(raw.pre, 0, UPGRADES.pre.max * UPGRADES.pre.step), height(run));
     run.score = num(raw.score);
     run.streak = num(raw.streak);
     run.bestStreak = Math.max(run.streak, num(raw.bestStreak));
-    run.perfects = Math.min(num(raw.perfects), height(run));
+    run.perfects = Math.min(num(raw.perfects), own(run));
     run.delivered = height(run) >= run.target;
     return run;
   }
@@ -285,7 +319,7 @@
   // 건넨 케이크에서 별 하나 더 받으려면 '딱 맞음'이 몇 번 더 필요했는지. 이미 셋이거나 못 건넸으면 null.
   function perfectsToNextStar(run) {
     if (!run.delivered) return null;
-    const h = Math.max(1, height(run));
+    const h = Math.max(1, own(run));
     const now = stars(run);
     if (now >= 3) return null;
     const target = now === 2 ? Math.ceil(h * 0.5) : Math.ceil(h * 0.2);
@@ -294,7 +328,7 @@
 
   function stars(run) {
     if (!run.delivered) return 0;
-    const ratio = run.perfects / Math.max(1, height(run));
+    const ratio = run.perfects / Math.max(1, own(run));
     return ratio >= 0.5 ? 3 : ratio >= 0.2 ? 2 : 1;
   }
 
@@ -527,7 +561,7 @@
 
   // 지금 손을 떼면 위층 가운데에서 얼마나 떨어진 곳에 닿는지(케이크 기준). 오늘의 주문은 예전과 똑같다.
   function landingAt(run, t) {
-    if (run.mode !== 'stage') return dropperOffset(t, height(run), run.seed, run.up);
+    if (run.mode !== 'stage') return dropperOffset(t, own(run), run.seed, run.up);
     const spec = playSpec(run);
     const o = stageOffset(spec, height(run), t);
     const w = stageWind(spec, run.layers.length, t);
@@ -545,7 +579,7 @@
   }
   // 화면에 그릴 짤주머니 위치(위층 가운데 기준, 바람 전)
   function hoverAt(run, t) {
-    return run.mode === 'stage' ? stageOffset(playSpec(run), height(run), t) : dropperOffset(t, height(run), run.seed, run.up);
+    return run.mode === 'stage' ? stageOffset(playSpec(run), height(run), t) : dropperOffset(t, own(run), run.seed, run.up);
   }
   function plateShift(run, t) {
     return run && run.mode === 'stage' ? stageSlide(playSpec(run), t) : { x: 0, z: 0 };
@@ -600,8 +634,9 @@
       const def = UPGRADES[id];
       if (!def) return null;
       const lv = st.up[id];
-      if (lv >= def.max || st.purse < def.costs[lv]) return null;
-      st.purse -= def.costs[lv];
+      const cost = upCost(id, lv);
+      if (lv >= def.max || st.purse < cost) return null;
+      st.purse -= cost;
       st.up[id] = lv + 1;
     }
     return { ...s, stage: st };
@@ -621,10 +656,15 @@
     if (!run) return run;
     const load = normalizeUp(up);
     const next = { ...run, up: load };
-    if (height(next) === 0 && next.layers && next.layers[0]) {
+    if (own(next) === 0 && next.layers && next.layers[0]) {
       const base = next.mode === 'stage' ? stageSpec(next.stage).baseR : BASE_R;
       const r = Math.min(WIDE_CAP, Math.round((base + load.wide * UPGRADES.wide.step) * 1000) / 1000);
-      next.layers = [{ ...next.layers[0], r }];
+      if (next.mode === 'stage') next.layers = [{ ...next.layers[0], r }];
+      else {
+        next.pre = load.pre * UPGRADES.pre.step;
+        next.layers = startLayers(r, next.pre, next.flavors);
+        next.delivered = false;
+      }
     }
     return next;
   }
@@ -657,11 +697,11 @@
   const logic = {
     FALL_T, STAGE_CAP, STAGE_MAIN, CHAPTERS, chapterOf, stageSpec, stageOffset, stageWind, stageSlide, stageVisible, stageAmp, newStageRun, landingAt, hoverAt, plateShift,
     perfectWindows, nextPerfectTime, stageStars, totalStageStars, stageRankScore, stageUnlocked, recordStage, sanitizeStage,
-    REVIVE_COST, REVIVE_MAX, UPGRADES, slackOf, tune, playSpec, stagePay, grantPurse, buy, takeRevive, continueRun, equipRun,
+    REVIVE_COST, REVIVE_MAX, UPGRADES, upCost, slackOf, tune, playSpec, stagePay, grantPurse, buy, takeRevive, continueRun, equipRun,
     perfectsToNextStar,
     BASE_R, LAYER_H, PERFECT, MIN_R, GROW_EVERY, FLAVORS, CUSTOMERS,
     dayKey, hash, rng, unlockedFlavors, nextUnlock, dailyOrder, swing, dropperOffset,
-    newRun, top, height, flavorAt, drop, newSave, sanitize, parseSave, sanitizeRun, recordRun, stars, nextCenterTime, simulate,
+    newRun, top, height, own, flavorAt, drop, newSave, sanitize, parseSave, sanitizeRun, recordRun, stars, nextCenterTime, simulate,
     flavor: (id) => FLAVORS.find((f) => f.id === id) || FLAVORS[0],
     customer: (id) => CUSTOMERS.find((c) => c.id === id) || CUSTOMERS[0],
   };
